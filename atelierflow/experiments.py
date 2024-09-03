@@ -2,13 +2,18 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from fastavro import writer, parse_schema
 import datetime
+from sklearn.model_selection import KFold
+
+from atelierflow.datasets import Dataset
 
 class Experiments:
-  def __init__(self, avro_schema):
+  def __init__(self, avro_schema, cross_validation, n_splits):
     self.models = []
     self.metrics = []
     self.train_datasets = []
     self.test_datasets = []
+    self.cross_validation = cross_validation
+    self.n_splits = n_splits
     self.avro_schema = parse_schema(avro_schema)
 
   def add_model(self, model):
@@ -36,14 +41,34 @@ class Experiments:
     if not self.test_datasets:
       raise ValueError("At least one testing dataset must be added.")
 
+    if self.cross_validation:
+      experiments = self._generate_cross_validation_experiment()
+    else:
+      experiments = self._generate_experiments()
+
     pipeline_options = PipelineOptions()
     with beam.Pipeline(options=pipeline_options) as p:
       _ = (
         p
-        | "Create Experiments" >> beam.Create(self._generate_experiments())
+        | "Create Experiments" >> beam.Create(experiments)
         | "Run Experiments" >> beam.ParDo(RunExperiment())
         | "Append Results to Avro" >> beam.ParDo(AppendResults(output_path, self.avro_schema))
       )
+
+  def _generate_cross_validation_experiment(self):
+    train_dataset = self.train_datasets[0]
+    kf = KFold(n_splits=self.n_splits)
+
+    for model in self.models:
+      for metric in self.metrics:
+        for fold_index, (train_idx, val_idx) in enumerate(kf.split(train_dataset.X_train, train_dataset.y_train)):
+          X_train_fold, X_val_fold = train_dataset.X_train[train_idx], train_dataset.X_train[val_idx]
+          y_train_fold, y_val_fold = train_dataset.y_train[train_idx], train_dataset.y_train[val_idx]
+
+          fold_train_dataset = Dataset(f"train_fold_{fold_index}", X_train=X_train_fold, y_train=y_train_fold)
+          fold_val_dataset = Dataset(f"val_fold_{fold_index}", X_test=X_val_fold, y_test=y_val_fold)
+
+          yield (model, fold_train_dataset, fold_val_dataset, metric)
 
   def _generate_experiments(self):
     for model in self.models:
