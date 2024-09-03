@@ -27,7 +27,8 @@ class SKLearnModel(BaseModel):
     # For example, 'learning_rate' and 'epoch' are included as key-value pairs in the returned dictionary.
     return {
       "learning_rate": "1e-10", 
-      "epoch": "100"
+      "epoch": "100",
+      "model_version": "1.0"
     }
 
 
@@ -79,7 +80,7 @@ def main():
       {"name": "metric_value", "type": "float"},
       {"name": "model_version", "type": "string", "default": "null"},
       {"name": "date", "type": "string"},
-      {"name": "dataset_train", "type": {"type": "array", "items": "string"}},
+      {"name": "dataset_train", "type": "string"},
       {"name": "dataset_test", "type": "string"},
       {"name": "learning_rate", "type": "string"},
       {"name": "epoch", "type": "string"},
@@ -97,12 +98,12 @@ def main():
   exp.add_metric(F1Metric())
 
   # Create the datasets
-  train_set = Dataset("mnist_train", X_train=X_train, y_train=y_train)
-  test_set = Dataset("mnist_test", X_test=X_test, y_test=y_test)
+  train_set1 = Dataset("dataset_train_1", X_train=X_train, y_train=y_train)
+  test_set1 = Dataset("dataset_test_1", X_test=X_test, y_test=y_test)
 
   # Add datasets to the experiment
-  exp.add_train(train_set)
-  exp.add_test(test_set)
+  exp.add_train(train_set1)
+  exp.add_test(test_set1)
 
   # Run experiments and save results to Avro
   exp.run("examples/experiment_results.avro")
