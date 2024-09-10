@@ -1,10 +1,13 @@
-from sklearn.datasets import fetch_openml
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
 from atelierflow import BaseModel, Experiments, BaseMetric, Dataset
+from sklearn.cluster import KMeans
 
-class SKLearnModel(BaseModel):
+# Model class for scikit-learn models
+class DecisionTree(BaseModel):
     def __init__(self, model, fit_params=None, predict_params=None):
         self.model = model
         self.fit_params = fit_params or {}
@@ -15,13 +18,59 @@ class SKLearnModel(BaseModel):
 
     def predict(self, X, **kwargs):
         return self.model.predict(X, **kwargs)
-    
+
     def get_parameters_description(self):
-        return {
-            "learning_rate": "1e-10", 
-            "epoch": "100",
-            "model_version": "1.0"
-        }
+        return {}
+
+    def get_fit_params(self):
+        return self.fit_params
+    
+    def get_predict_params(self):
+        return self.predict_params
+    
+    def requires_supervised_data(self):
+        return True
+
+
+class LogisticReg(BaseModel):
+    def __init__(self, model, fit_params=None, predict_params=None):
+        self.model = model
+        self.fit_params = fit_params or {}
+        self.predict_params = predict_params or {}
+
+    def fit(self, X, y, **kwargs):
+        self.model.fit(X, y, **kwargs)
+
+    def predict(self, X, **kwargs):
+        return self.model.predict(X, **kwargs)
+
+    def get_parameters_description(self):
+        return {}
+
+    def get_fit_params(self):
+        return self.fit_params
+    
+    def get_predict_params(self):
+        return self.predict_params
+    
+    def requires_supervised_data(self):
+        return True
+    
+    # Model class for scikit-learn unsupervised models
+class KMeansModel(BaseModel):
+    def __init__(self, model, fit_params=None, predict_params=None):
+        self.model = model
+        self.fit_params = fit_params or {}
+        self.predict_params = predict_params or {}
+
+    def fit(self, X, y=None, **kwargs):
+        self.model.fit(X, **kwargs)
+
+    def predict(self, X, **kwargs):
+        return self.model.predict(X, **kwargs)
+
+    def get_parameters_description(self):
+        return {}
 
     def get_fit_params(self):
         return self.fit_params
@@ -30,34 +79,23 @@ class SKLearnModel(BaseModel):
         return self.predict_params
 
     def requires_supervised_data(self):
-        return True
+        return False
 
-class AccuracyMetric(BaseMetric):
-    def __init__(self, name=None, compute_params=None):
-        super().__init__(name, compute_params)
-
-    def compute(self, y_true, y_pred, **kwargs):
-        return accuracy_score(y_true, y_pred)
-  
-    def get_compute_params(self):
-        return super().get_compute_params()
-
+# F1 score metric
 class F1Metric(BaseMetric):
     def __init__(self, name=None, compute_params=None):
         super().__init__(name, compute_params)
 
-    def compute(self, y_true, y_pred, *kwargs):
+    def compute(self, y_true, y_pred):
         return f1_score(y_true, y_pred, average="weighted")
-  
+    
     def get_compute_params(self):
         return super().get_compute_params()
 
 def main():
-    # Load the MNIST dataset
-    mnist = fetch_openml("mnist_784")
-    X = mnist.data
-    y = mnist.target.astype(int)  # Convert to integers if needed
-
+    # Generate synthetic data using NumPy
+    X, y = np.random.rand(1000, 20), np.random.randint(0, 10, 1000)
+    
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -70,24 +108,22 @@ def main():
             {"name": "model_name", "type": "string"},
             {"name": "metric_name", "type": "string"},
             {"name": "metric_value", "type": "float"},
-            {"name": "model_version", "type": "string", "default": "null"},
             {"name": "date", "type": "string"},
             {"name": "dataset_train", "type": "string"},
             {"name": "dataset_test", "type": "string"},
-            {"name": "learning_rate", "type": "string"},
-            {"name": "epoch", "type": "string"},
         ],
     }
 
     # Create experiments
-    exp = Experiments(avro_schema=avro_schema)
+    exp = Experiments(avro_schema=avro_schema, cross_validation=False, n_splits=0)
 
     # Add models to the experiment with fit_params and predict_params
-    exp.add_model(SKLearnModel(DecisionTreeClassifier()))
+    exp.add_model(DecisionTree(DecisionTreeClassifier(), predict_params={}))
+    exp.add_model(LogisticReg(LogisticRegression(), predict_params={}))
+    exp.add_model(KMeansModel(KMeans(), predict_params={}))
 
     # Add metrics to the experiment
-    exp.add_metric(AccuracyMetric(name="accuracy"))
-    exp.add_metric(F1Metric(name='f1'))
+    exp.add_metric(F1Metric(name='f1', ))
 
     # Create the datasets
     train_set1 = Dataset("dataset_train_1", X_train=X_train, y_train=y_train)
