@@ -8,7 +8,7 @@ from sklearn.model_selection import KFold
 from atelierflow.datasets import Dataset
 
 class Experiments:
-    def __init__(self, avro_schema, cross_validation, n_splits):
+    def __init__(self, avro_schema, cross_validation=None, n_splits=None):
         self.models = []
         self.metrics = []
         self.train_datasets = []
@@ -119,14 +119,23 @@ class RunExperiment(beam.DoFn):
         model_copy = model.__class__(model=model.model)
 
         try:
-            print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
-            model_copy.fit(train_dataset.X_train, train_dataset.y_train)
-            print("  -> Training completed.")
+            if model.requires_supervised_data() and train_dataset.has_train():
+                print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
+                fit_params = model.get_fit_params()
+                model_copy.fit(train_dataset.X_train, train_dataset.y_train, **fit_params)
+                print("  -> Training completed.")
+            elif not model.requires_supervised_data() and train_dataset.has_train():
+                print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
+                fit_params = model.get_fit_params()
+                model_copy.fit(train_dataset.X_train, **fit_params)
+                print("  -> Training completed.")
 
-            y_pred = model_copy.predict(test_dataset.X_test)
+            predict_params = model.get_predict_params()
+            y_pred = model_copy.predict(test_dataset.X_test, **predict_params)
 
+            compute_params = metric.get_compute_params()
             print(f"  -> Evaluating model {type(model).__name__} using metric {metric.name} on dataset {test_dataset.name}...")
-            metric_value = metric.compute(test_dataset.y_test, y_pred)
+            metric_value = metric.compute(test_dataset.y_test, y_pred, **compute_params)
             print(f"  -> Result: {metric.name} = {metric_value}\n")
 
             result_tuple = (
@@ -151,11 +160,11 @@ class RunExperiment(beam.DoFn):
 
 class AppendResults(beam.DoFn):
     def __init__(self, output_path, avro_schema):
-        self.output_path = output_path
+        self.output_path = output_path  
         self.avro_schema = avro_schema
 
-    def process(self, result):
-        model_name, dataset_train, dataset_test, metric_name, metric_value, model = result
+    def process(self, record):
+        model_name, dataset_train, dataset_test, metric_name, metric_value, model = record
         parameters_description = model.get_parameters_description()
 
         print(f"  -> Appending results for model {model_name} with metric {metric_name} to Avro file...\n")
