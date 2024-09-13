@@ -121,21 +121,22 @@ class RunExperiment(beam.DoFn):
         try:
             if model.requires_supervised_data() and train_dataset.has_train():
                 print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
-                fit_params = model.get_fit_params()
+                fit_params = model_copy.get_fit_params()
                 model_copy.fit(train_dataset.X_train, train_dataset.y_train, **fit_params)
                 print("  -> Training completed.")
             elif not model.requires_supervised_data() and train_dataset.has_train():
                 print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
-                fit_params = model.get_fit_params()
+                fit_params = model_copy.get_fit_params()
                 model_copy.fit(train_dataset.X_train, **fit_params)
                 print("  -> Training completed.")
 
             predict_params = model.get_predict_params()
-            y_pred = model_copy.predict(test_dataset.X_test, **predict_params)
+            # y_pred = model_copy.predict(test_dataset.X_test, **predict_params)
 
             compute_params = metric.get_compute_params()
+
             print(f"  -> Evaluating model {type(model).__name__} using metric {metric.name} on dataset {test_dataset.name}...")
-            metric_value = metric.compute(test_dataset.y_test, y_pred, **compute_params)
+            metric_value = metric.compute(model_copy.model, test_dataset.X_test, test_dataset.y_test, **compute_params)
             print(f"  -> Result: {metric.name} = {metric_value}\n")
 
             result_tuple = (
@@ -144,7 +145,6 @@ class RunExperiment(beam.DoFn):
                 test_dataset.name,
                 metric.name,
                 metric_value,
-                model_copy
             )
 
             yield pvalue.TaggedOutput("results", result_tuple)
@@ -164,8 +164,7 @@ class AppendResults(beam.DoFn):
         self.avro_schema = avro_schema
 
     def process(self, record):
-        model_name, dataset_train, dataset_test, metric_name, metric_value, model = record
-        parameters_description = model.get_parameters_description()
+        model_name, dataset_train, dataset_test, metric_name, metric_value = record
 
         print(f"  -> Appending results for model {model_name} with metric {metric_name} to Avro file...\n")
 
@@ -178,7 +177,6 @@ class AppendResults(beam.DoFn):
             "dataset_test": dataset_test,
         }
 
-        record.update(parameters_description)
 
         with open(self.output_path, "a+b") as out:
             writer(out, self.avro_schema, [record])

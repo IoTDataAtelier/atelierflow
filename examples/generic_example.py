@@ -6,6 +6,9 @@ from sklearn.metrics import f1_score
 from atelierflow import BaseModel, Experiments, BaseMetric, Dataset
 from sklearn.cluster import KMeans
 
+from sklearn import metrics
+
+
 # Model class for scikit-learn models
 class DecisionTree(BaseModel):
     def __init__(self, model, fit_params=None, predict_params=None):
@@ -56,30 +59,7 @@ class LogisticReg(BaseModel):
     def requires_supervised_data(self):
         return True
     
-    # Model class for scikit-learn unsupervised models
-class KMeansModel(BaseModel):
-    def __init__(self, model, fit_params=None, predict_params=None):
-        self.model = model
-        self.fit_params = fit_params or {}
-        self.predict_params = predict_params or {}
 
-    def fit(self, X, y=None, **kwargs):
-        self.model.fit(X, **kwargs)
-
-    def predict(self, X, **kwargs):
-        return self.model.predict(X, **kwargs)
-
-    def get_parameters_description(self):
-        return {}
-
-    def get_fit_params(self):
-        return self.fit_params
-    
-    def get_predict_params(self):
-        return self.predict_params
-
-    def requires_supervised_data(self):
-        return False
 
 # F1 score metric
 class F1Metric(BaseMetric):
@@ -91,6 +71,8 @@ class F1Metric(BaseMetric):
     
     def get_compute_params(self):
         return super().get_compute_params()
+
+
 
 def main():
     # Generate synthetic data using NumPy
@@ -120,10 +102,9 @@ def main():
     # Add models to the experiment with fit_params and predict_params
     exp.add_model(DecisionTree(DecisionTreeClassifier(), predict_params={}))
     exp.add_model(LogisticReg(LogisticRegression(), predict_params={}))
-    exp.add_model(KMeansModel(KMeans(), predict_params={}))
 
     # Add metrics to the experiment
-    exp.add_metric(F1Metric(name='f1', ))
+    exp.add_metric(F1Metric(name='f1'))
 
     # Create the datasets
     train_set1 = Dataset("dataset_train_1", X_train=X_train, y_train=y_train)
