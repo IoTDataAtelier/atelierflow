@@ -5,7 +5,7 @@ from fastavro import writer, parse_schema
 import datetime
 from sklearn.model_selection import KFold
 
-from atelierflow.datasets import Dataset
+from atelierflow.dataset import Dataset
 
 class Experiments:
     def __init__(self, avro_schema, cross_validation=None, n_splits=None):
@@ -121,22 +121,22 @@ class RunExperiment(beam.DoFn):
         try:
             if model.requires_supervised_data() and train_dataset.has_train():
                 print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
-                fit_params = model_copy.get_fit_params()
+                fit_params = model.get_fit_params()
                 model_copy.fit(train_dataset.X_train, train_dataset.y_train, **fit_params)
                 print("  -> Training completed.")
             elif not model.requires_supervised_data() and train_dataset.has_train():
                 print(f"  -> Training model {type(model).__name__} on dataset {train_dataset.name}...")
-                fit_params = model_copy.get_fit_params()
+                fit_params = model.get_fit_params()
                 model_copy.fit(train_dataset.X_train, **fit_params)
                 print("  -> Training completed.")
 
-            predict_params = model.get_predict_params()
+            # predict_params = model.get_predict_params()
             # y_pred = model_copy.predict(test_dataset.X_test, **predict_params)
 
-            compute_params = metric.get_compute_params()
+            # compute_params = metric.get_compute_params()
 
             print(f"  -> Evaluating model {type(model).__name__} using metric {metric.name} on dataset {test_dataset.name}...")
-            metric_value = metric.compute(model_copy.model, test_dataset.X_test, test_dataset.y_test, **compute_params)
+            metric_value = metric.run(test_dataset.X_test, test_dataset.y_test, model_copy.model)
             print(f"  -> Result: {metric.name} = {metric_value}\n")
 
             result_tuple = (

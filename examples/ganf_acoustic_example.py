@@ -1,13 +1,11 @@
 from mtsa.metrics import calculate_aucroc
-from atelierflow import BaseMetric
 from atelierflow import Experiments, BaseMetric, BaseModel, Dataset
-from atelierflow import BaseModel
 from mtsa.models.ganf import GANF
 import numpy as np
 import tensorflow as tf
 from mtsa import files_train_test_split
-path_input_1 = "sample_data/machine_type_1/id_00"
-path_input_2 = "sample_data/machine_type_1/id_00"
+path_input_1 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
+path_input_2 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
 
 
 class GANFModel(BaseModel):
@@ -37,15 +35,20 @@ class GANFModel(BaseModel):
         return True
 
 
+
 class ROCAUC(BaseMetric):
     def __init__(self, name=None, compute_params=None):
         super().__init__(name, compute_params)
 
-    def compute(self, model, y_pred, y_true):
-        return calculate_aucroc(model, y_pred, y_true)
+    def compute(self, X, y, model):
+        return calculate_aucroc(model, X, y)
     
     def get_compute_params(self):
         return super().get_compute_params()
+    
+    def run(self, X, y=None, model=None):
+        # some steps
+        return self.compute(X, y, model)
 
 
 
@@ -72,11 +75,11 @@ def main():
     # Generate synthetic dataset or load your dataset
     # train_dataset, test_dataset = generate_synthetic_dataset()
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    assert len(gpus) > 0, "Not enough GPU hardware devices available"
-    if gpus:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # assert len(gpus) > 0, "Not enough GPU hardware devices available"
+    # if gpus:
+    #     for gpu in gpus:
+    #         tf.config.experimental.set_memory_growth(gpu, True)
 
     X_train, X_test, y_train, y_test = files_train_test_split(path_input_1)
     if(len(y_train) == 0): 
@@ -104,7 +107,7 @@ def main():
     experiments = Experiments(avro_schema=avro_schema)
 
     # Instantiate the GANF model
-    ganf_model = GANFModel(model=GANF(mono= True, use_array2mfcc= True, isForWaveData= True))
+    ganf_model = GANFModel(model=GANF(mono= True, use_array2mfcc= True, isForWaveData= True), fit_params={"epochs": 5})
 
     # Add the GANF model to the experiments
     experiments.add_model(ganf_model)

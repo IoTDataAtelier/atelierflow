@@ -25,4 +25,3 @@ if __name__ == "__main__":
     file_path = "examples/experiment_results.avro"
     pipeline = CustomPipeline(file_path=file_path)
     pipeline.run()
-

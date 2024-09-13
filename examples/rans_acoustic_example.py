@@ -5,9 +5,8 @@ from mtsa.models.ransyncorders import RANSynCoders
 import numpy as np
 import tensorflow as tf
 from mtsa import files_train_test_split
-path_input_1 = "sample_data/machine_type_1/id_00"
-
-path_input_2 = "sample_data/machine_type_1/id_00"
+path_input_1 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
+path_input_2 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
 
 class RANSModel(BaseModel):
     def __init__(self, model, fit_params=None, predict_params=None):
@@ -40,11 +39,14 @@ class ROCAUC(BaseMetric):
     def __init__(self, name=None, compute_params=None):
         super().__init__(name, compute_params)
 
-    def compute(self, model, y_pred, y_true):
-        return calculate_aucroc(model, y_pred, y_true)
+    def compute(self, X, y, model):
+        return calculate_aucroc(model, X, y)
     
     def get_compute_params(self):
         return super().get_compute_params()
+    
+    def run(self, X, y=None, model=None):
+        return self.compute(X, y, model)
 
 
 def generate_synthetic_dataset():
@@ -67,11 +69,11 @@ def generate_synthetic_dataset():
 
 def main():
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    assert len(gpus) > 0, "Not enough GPU hardware devices available"
-    if gpus:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # assert len(gpus) > 0, "Not enough GPU hardware devices available"
+    # if gpus:
+    #     for gpu in gpus:
+    #         tf.config.experimental.set_memory_growth(gpu, True)
 
     X_train, X_test, y_train, y_test = files_train_test_split(path_input_1)
     if(len(y_train) == 0): 
