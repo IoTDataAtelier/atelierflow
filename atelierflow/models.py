@@ -9,10 +9,6 @@ class BaseModel(ABC):
   def predict(self, X, **kwargs):
     pass
 
-  @abstractmethod
-  def get_parameters_description(self):
-    pass
-
   def get_fit_params(self):
     return self.fit_params
 

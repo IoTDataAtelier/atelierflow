@@ -20,12 +20,7 @@ class HitachiModel(BaseModel):
 
     def predict(self, X):
         return self.model.predict(X)
-
-    def get_parameters_description(self):
-        return {
-            "model_version": "1.0"
-        }
-    
+  
     def get_fit_params(self):
         return self.fit_params
     
