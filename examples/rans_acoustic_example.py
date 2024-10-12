@@ -1,12 +1,15 @@
+from fastavro import parse_schema
 from mtsa.metrics import calculate_aucroc
-
-from atelierflow import Experiments, BaseMetric, BaseModel, Dataset
+from atelierflow import BaseMetric, BaseModel, Dataset, ExperimentBuilder
 from mtsa.models.ransyncorders import RANSynCoders
 import numpy as np
 import tensorflow as tf
 from mtsa import files_train_test_split
-path_input_1 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
-path_input_2 = "/home/celin/Desktop/code/pipeflow/examples/sample_data/machine_type_1/id_00"
+from examples.mtsasteps import TrainModel, EvaluateModel, AppendResults, GenerateExperimentsStep
+import os
+
+path_input_1 = os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
+path_input_2 = os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
 
 class RANSModel(BaseModel):
     def __init__(self, model, fit_params=None, predict_params=None):
@@ -33,8 +36,8 @@ class RANSModel(BaseModel):
     
     def requires_supervised_data(self):
         return True
-    
-# F1 score metric
+
+
 class ROCAUC(BaseMetric):
     def __init__(self, name=None, compute_params=None):
         super().__init__(name, compute_params)
@@ -46,6 +49,7 @@ class ROCAUC(BaseMetric):
         return super().get_compute_params()
     
     def run(self, X, y=None, model=None):
+        # some steps
         return self.compute(X, y, model)
 
 
@@ -57,9 +61,9 @@ def generate_synthetic_dataset():
     
     # Generate random data
     X_train = np.random.rand(num_train_samples, num_features)
-    y_train = np.random.randint(0, 2, num_train_samples) 
+    y_train = np.random.randint(0, 2, num_train_samples)  # Binary labels
     X_test = np.random.rand(num_test_samples, num_features)
-    y_test = np.random.randint(0, 2, num_test_samples)
+    y_test = np.random.randint(0, 2, num_test_samples)    # Binary labels
 
     # Create Dataset instances
     train_dataset = Dataset(name="synthetic_train", X_train=X_train, y_train=y_train)
@@ -67,26 +71,18 @@ def generate_synthetic_dataset():
 
     return train_dataset, test_dataset
 
+
 def main():
 
-    # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # assert len(gpus) > 0, "Not enough GPU hardware devices available"
-    # if gpus:
-    #     for gpu in gpus:
-    #         tf.config.experimental.set_memory_growth(gpu, True)
+    # Generate synthetic dataset or load your dataset
+    # train_dataset, test_dataset = generate_synthetic_dataset()
 
     X_train, X_test, y_train, y_test = files_train_test_split(path_input_1)
-    if(len(y_train) == 0): 
+    if len(y_train) == 0: 
         X_train, X_test, y_train, y_test = files_train_test_split(path_input_2)
 
-    print("X_TRAIN:", X_train)
-    print("X_test:", X_test)
-    print("y_train:", y_train)
-    print("y_test:", y_test)
     train_dataset = Dataset(name="synthetic_train", X_train=X_train, y_train=y_train)
     test_dataset = Dataset(name="synthetic_test", X_test=X_test, y_test=y_test)
-
-    # train_dataset, test_dataset = generate_synthetic_dataset()
 
     # Define the Avro schema for saving results
     avro_schema = {
@@ -103,27 +99,35 @@ def main():
         ],
     }
 
-    # Instantiate the Experiments
-    experiments = Experiments(avro_schema=avro_schema)
+    # Instantiate the ExperimentBuilder
+    builder = ExperimentBuilder()
+    builder.set_avro_schema(avro_schema)
 
-    # Instantiate the GANF model
-    rans = RANSModel(model=RANSynCoders(is_acoustic_data=True, mono=True, normal_classifier=1, abnormal_classifier=0, synchronize=True))
+    # Instantiate the RANS model
+    rans_model = RANSModel(model=RANSynCoders(is_acoustic_data=True, mono=True, normal_classifier=1, abnormal_classifier=0, synchronize=True), fit_params={"epochs": 5})
 
-    # Add the GANF model to the experiments
-    experiments.add_model(rans)
+    # Add the RANS model to the builder
+    builder.add_model(rans_model)
 
     # Add the AUC ROC metric
-    experiments.add_metric(ROCAUC(name="roc_auc"))
+    builder.add_metric(ROCAUC(name="roc_auc"))
 
     # Add datasets
-    experiments.add_train(train_dataset)
-    experiments.add_test(test_dataset)
+    builder.add_train_dataset(train_dataset)
+    builder.add_test_dataset(test_dataset)
 
     # Define the output path for the Avro file
     output_path = "examples/experiment_results.avro"
+    builder.add_step(GenerateExperimentsStep())
+    builder.add_step(TrainModel())
+    builder.add_step(EvaluateModel())
+    builder.add_step(AppendResults(output_path, parse_schema(avro_schema)))
+
+    # Build the experiments object
+    experiments = builder.build()
 
     # Run the experiments
-    experiments.run(output_path)
+    experiments.run()
 
 if __name__ == "__main__":
     main()
