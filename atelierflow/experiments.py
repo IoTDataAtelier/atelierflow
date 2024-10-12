@@ -1,5 +1,7 @@
+import os
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+import numpy as np
 
 
 class Experiments:
@@ -26,18 +28,21 @@ class Experiments:
     def add_step(self, step):
         self.steps.append(step)
 
-    def run(self):
+    def run(self, initial_input = None):
 
         print("===================================")
         print("Starting the experiment pipeline...")
         print("===================================")
-
+        
         experiments = {
             "models": self.models,
             "train_datasets": self.train_datasets,
             "test_datasets": self.test_datasets,
-            "metrics": self.metrics
+            "metrics": self.metrics,
         }
+
+        if initial_input:
+            experiments.update(initial_input)
 
         pipeline_options = PipelineOptions()
         with beam.Pipeline(options=pipeline_options) as p:

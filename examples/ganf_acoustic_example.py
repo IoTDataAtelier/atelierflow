@@ -1,14 +1,11 @@
 from fastavro import parse_schema
+import numpy as np
 from mtsa.metrics import calculate_aucroc
-from atelierflow import BaseMetric, BaseModel, Dataset, ExperimentBuilder
+from atelierflow import BaseMetric, BaseModel, ExperimentBuilder
 from mtsa.models.ganf import GANF
-import tensorflow as tf
-from mtsa import files_train_test_split
-from examples.mtsasteps import TrainModel, EvaluateModel, AppendResults, GenerateExperimentsStep
+from examples.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 import os
 
-path_input_1 = os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
-path_input_2 = os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
 
 class GANFModel(BaseModel):
     def __init__(self, model, fit_params=None, predict_params=None):
@@ -49,59 +46,52 @@ class ROCAUC(BaseMetric):
 
 def main():
 
-    # Generate synthetic dataset or load your dataset
-    # train_dataset, test_dataset = generate_synthetic_dataset()
+  # Define the Avro schema for saving results
+  avro_schema = {
+      "namespace": "example.avro",
+      "type": "record",
+      "name": "ModelResult",
+      "fields": [
+          {"name": "batch_size", "type": "string"},
+          {"name": "epoch_size", "type": "string"},
+          {"name": "learning_rate", "type": "string"},
+          {"name": "sampling_rate", "type": "string"},
+          {"name": "AUC_ROCs", "type": "string"},
+      ],
+  }
 
-    X_train, X_test, y_train, y_test = files_train_test_split(path_input_1)
-    if len(y_train) == 0: 
-        X_train, X_test, y_train, y_test = files_train_test_split(path_input_2)
+  # Instantiate the ExperimentBuilder
+  builder = ExperimentBuilder()
+  builder.set_avro_schema(avro_schema)
+  sampling_rate_sound = 16000              
+  
+  initial_inputs = {
+    "batch_size_values": np.array([1024, 512, 256, 128, 64, 32]),
+    "learning_rate_values": np.array([1e-9]),
+    "path_input": os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
+  }
+  # Instantiate the GANF model
+  ganf_model = GANFModel(model=GANF(sampling_rate=sampling_rate_sound, mono=True, use_array2mfcc=True, isForWaveData=True))
 
-    train_dataset = Dataset(name="synthetic_train", X_train=X_train, y_train=y_train)
-    test_dataset = Dataset(name="synthetic_test", X_test=X_test, y_test=y_test)
+  # Add the GANF model to the builder
+  builder.add_model(ganf_model)
 
-    # Define the Avro schema for saving results
-    avro_schema = {
-        "namespace": "example.avro",
-        "type": "record",
-        "name": "ModelResult",
-        "fields": [
-            {"name": "model_name", "type": "string"},
-            {"name": "metric_name", "type": "string"},
-            {"name": "metric_value", "type": "float"},
-            {"name": "date", "type": "string"},
-            {"name": "dataset_train", "type": "string"},
-            {"name": "dataset_test", "type": "string"},
-        ],
-    }
+  # Add the AUC ROC metric
+  builder.add_metric(ROCAUC(name="roc_auc"))
 
-    # Instantiate the ExperimentBuilder
-    builder = ExperimentBuilder()
-    builder.set_avro_schema(avro_schema)
-    # Instantiate the GANF model
-    ganf_model = GANFModel(model=GANF(mono=True, use_array2mfcc=True, isForWaveData=True), fit_params={"epochs": 5})
+  # Define the output path for the Avro file
+  output_path = "examples/experiment_results.avro"
+  builder.add_step(LoadDataStep())
+  builder.add_step(PrepareFoldsStep())
+  builder.add_step(TrainModelStep())
+  builder.add_step(EvaluateModelStep())
+  builder.add_step(AppendResultsStep(output_path, parse_schema(avro_schema)))
 
-    # Add the GANF model to the builder
-    builder.add_model(ganf_model)
+  # Build the experiments object
+  experiments = builder.build()
 
-    # Add the AUC ROC metric
-    builder.add_metric(ROCAUC(name="roc_auc"))
-
-    # Add datasets
-    builder.add_train_dataset(train_dataset)
-    builder.add_test_dataset(test_dataset)
-
-    # Define the output path for the Avro file
-    output_path = "examples/experiment_results.avro"
-    builder.add_step(GenerateExperimentsStep())
-    builder.add_step(TrainModel())
-    builder.add_step(EvaluateModel())
-    builder.add_step(AppendResults(output_path, parse_schema(avro_schema)))
-
-    # Build the experiments object
-    experiments = builder.build()
-
-    # Run the experiments
-    experiments.run()
+  # Run the experiments
+  experiments.run(initial_inputs)
 
 if __name__ == "__main__":
     main()
