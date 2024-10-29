@@ -1,47 +1,20 @@
 from fastavro import parse_schema
 import numpy as np
-from mtsa.metrics import calculate_aucroc
-from atelierflow import BaseMetric, BaseModel, ExperimentBuilder
+from pipeflow.atelierflow.metrics.roc_auc import ROCAUC
+from pipeflow.atelierflow import BaseModel, ExperimentBuilder
 from mtsa.models.ganf import GANF
-from examples.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
-import os
+from pipeflow.examples.acoustic_models.ganf.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 
 
 class GANFModel(BaseModel):
-    def __init__(self, model, fit_params=None, predict_params=None):
+    def __init__(self, model):
         self.model = model
-        self.fit_params = fit_params or {}
-        self.predict_params = predict_params or {}
 
     def fit(self, X, y, **kwargs):
         self.model.fit(X, y, **kwargs)
 
     def predict(self, X):
         return self.model.predict(X)
-
-    def get_fit_params(self):
-        return self.fit_params
-    
-    def get_predict_params(self):
-        return self.predict_params
-    
-    def requires_supervised_data(self):
-        return True
-
-
-class ROCAUC(BaseMetric):
-    def __init__(self, name=None, compute_params=None):
-        super().__init__(name, compute_params)
-
-    def compute(self, X, y, model):
-        return calculate_aucroc(model, X, y)
-    
-    def get_compute_params(self):
-        return super().get_compute_params()
-    
-    def run(self, X, y=None, model=None):
-        # some steps
-        return self.compute(X, y, model)
 
 
 def main():
@@ -68,7 +41,7 @@ def main():
   initial_inputs = {
     "batch_size_values": np.array([1024, 512, 256, 128, 64, 32]),
     "learning_rate_values": np.array([1e-9]),
-    "path_input": os.path.join(os.getcwd(), "examples/sample_data/machine_type_1/id_00")
+    "path_input": "/data/marcelo/pipeflow/examples/sample_data"
   }
   # Instantiate the GANF model
   ganf_model = GANFModel(model=GANF(sampling_rate=sampling_rate_sound, mono=True, use_array2mfcc=True, isForWaveData=True))
@@ -80,7 +53,7 @@ def main():
   builder.add_metric(ROCAUC(name="roc_auc"))
 
   # Define the output path for the Avro file
-  output_path = "examples/experiment_results.avro"
+  output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"
   builder.add_step(LoadDataStep())
   builder.add_step(PrepareFoldsStep())
   builder.add_step(TrainModelStep())

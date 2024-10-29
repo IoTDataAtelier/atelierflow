@@ -1,20 +1,19 @@
 import apache_beam as beam
 from fastavro import writer
+import numpy as np
 from sklearn.model_selection import KFold
 
-from mtsa.utils import files_train_test_split
-
-
+from pipeflow.atelierflow.datasets.acoustic_dataset import AcousticDataset
 
 class LoadDataStep(beam.DoFn):
     def process(self, element):
-
-        X_train, X_test, Y_train, Y_test = files_train_test_split(element['path_input'])
+        
+        train_dataset = AcousticDataset(element['path_input'], include_abnormal=False, pattern=".wav")
+        test_dataset = AcousticDataset(element['path_input'], include_abnormal=True, pattern=".wav")
+        
         yield {
-            'X_train': X_train,
-            'X_test': X_test,
-            'Y_train': Y_train,
-            'Y_test': Y_test,
+            'train_dataset': train_dataset,
+            'test_dataset': test_dataset,
             'proxy_model': element['models'][0],
             'metric': element['metrics'][0],
             'learning_rate_values': element['learning_rate_values'],
@@ -26,10 +25,12 @@ class LoadDataStep(beam.DoFn):
 
 class PrepareFoldsStep(beam.DoFn):
     def process(self, element):
-        X_train = element['X_train']
-        Y_train = element['Y_train']
+        train_dataset = element['train_dataset']
+        X = train_dataset.paths
+        Y = train_dataset.labels
+
         kf = KFold(n_splits=5)
-        splits = list(enumerate(kf.split(X_train, Y_train)))
+        splits = list(enumerate(kf.split(X, Y)))
         element['splits'] = splits
         yield element
 
@@ -39,22 +40,25 @@ class PrepareFoldsStep(beam.DoFn):
 class TrainModelStep(beam.DoFn):
     def process(self, element):
 
-        X_train = element['X_train']
-        Y_train = element['Y_train']
+        train_dataset = element['train_dataset']
         model = element['proxy_model'].model
         
         for learning_rate in element['learning_rate_values']:
             for batch_size in element['batch_size_values']:
                 print('\nlr= {}, batch= {}\n'.format(learning_rate, batch_size))
                 for fold, (train_index, val_index) in element['splits']:
-                    print(fold + 1)
-                    x_train_fold, y_train_fold = X_train[train_index], Y_train[train_index]
+                    print(f"Fold: {fold + 1}")
+
+
+                    x_train_fold = [train_dataset.paths[i] for i in train_index]
+                    y_train_fold = [train_dataset.labels[i] for i in train_index]
+
                     model_copy = model.clone()
                     model_copy.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate)
 
+                    element['sampling_rate'] = model.sampling_rate
                     element['model'] = model_copy
                     element['batch_size'] = batch_size
-                    element['sampling_rate'] = model.sampling_rate
                     element['learning_rate'] = learning_rate
                     yield element
                     del model_copy
@@ -65,11 +69,11 @@ class TrainModelStep(beam.DoFn):
 class EvaluateModelStep(beam.DoFn):
     def process(self, element):
         model = element['model']
-        X_test = element['X_test']
-        Y_test = element['Y_test']
+        test_dataset = element['test_dataset']
         metric = element['metric']
 
-        auc = metric.compute(X_test, Y_test, model)
+        paths_array = np.array(test_dataset.paths, dtype='<U90')
+        auc = metric.compute(model, paths_array, test_dataset.labels)
         element['AUC_ROC'] = auc
         yield element
 

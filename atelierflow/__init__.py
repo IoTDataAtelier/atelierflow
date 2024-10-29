@@ -1,8 +1,8 @@
-from .models import BaseModel
+from .model import BaseModel
 from .experiments import Experiments
 from .experimentsBuilder import ExperimentBuilder
-from .metrics import BaseMetric
-from .dataset import Dataset
+from .metrics.metric import BaseMetric
+from .datasets.dataset import Dataset
 
 __all__ = [
   "BaseModel",

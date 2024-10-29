@@ -9,7 +9,7 @@ from niexperiments.lib.consts import CORRUPTIONS_TYPES
 from niexperiments.lib.logger import print_execution
 from keras.callbacks import EarlyStopping
 from niexperiments.lib.functions import filter_active
-from atelierflow.steps import StepInterface
+from pipeflow.atelierflow.steps.step import StepInterface
 
 
 class LoadDataStep(beam.DoFn, StepInterface):
