@@ -1,10 +1,10 @@
 from fastavro import parse_schema
 import numpy as np
-from pipeflow.atelierflow.metrics.roc_auc import ROCAUC
-from pipeflow.atelierflow import BaseModel, ExperimentBuilder
+from atelierflow import BaseModel, ExperimentBuilder
 from mtsa.models.ganf import GANF
-from pipeflow.examples.acoustic_models.ganf.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
-
+from ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
+from atelierflow.metrics.metric import BaseMetric
+from mtsa.metrics import calculate_aucroc
 
 class GANFModel(BaseModel):
     def __init__(self, model):
@@ -16,6 +16,12 @@ class GANFModel(BaseModel):
     def predict(self, X):
         return self.model.predict(X)
 
+class ROCAUC(BaseMetric):
+    def __init__(self):
+        pass
+
+    def compute(self, model, y, x):
+        return calculate_aucroc(model, x, y)
 
 def main():
 
@@ -50,7 +56,7 @@ def main():
   builder.add_model(ganf_model)
 
   # Add the AUC ROC metric
-  builder.add_metric(ROCAUC(name="roc_auc"))
+  builder.add_metric(ROCAUC())
 
   # Define the output path for the Avro file
   output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"

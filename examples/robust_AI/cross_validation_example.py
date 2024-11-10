@@ -1,6 +1,6 @@
 from fastavro import parse_schema
 from atelierflow.experimentsBuilder import ExperimentBuilder
-from pipeflow.examples.robust_AI.cross_validation_steps import LoadDataStep, TrainModel, EvaluateModel, CorruptionEvaluationStep, AppendResults
+from cross_validation_steps import LoadDataStep, TrainModel, EvaluateModel, CorruptionEvaluationStep, AppendResults
 
 avro_schema = {
     "namespace": "example.avro",

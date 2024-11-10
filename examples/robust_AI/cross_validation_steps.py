@@ -1,18 +1,15 @@
-import apache_beam as beam
 import datetime
 from fastavro import writer
-from abc import ABC, abstractmethod
 from niexperiments.dataset.cifar import get_cifar10_kfold_splits, get_cifar10_dataset, get_cifar10_corrupted
 from niexperiments import experiments_config
-from niexperiments.lib.metrics import write_fscore_result
 from niexperiments.lib.consts import CORRUPTIONS_TYPES
 from niexperiments.lib.logger import print_execution
 from keras.callbacks import EarlyStopping
 from niexperiments.lib.functions import filter_active
-from pipeflow.atelierflow.steps.step import StepInterface
+from atelierflow.steps.step import Step
 
 
-class LoadDataStep(beam.DoFn, StepInterface):
+class LoadDataStep(Step):
     def process(self, element):
         x_train, y_train, x_test, y_test, splits = get_cifar10_kfold_splits(experiments_config.KFOLD_N_SPLITS)
         yield {
@@ -28,7 +25,7 @@ class LoadDataStep(beam.DoFn, StepInterface):
     def name(self):
         return "LoadDataStep"
     
-class GenerateFoldsStep(beam.DoFn, StepInterface):
+class GenerateFoldsStep(Step):
     def process(self, element):
         x_train, y_train, x_test, y_test, splits = get_cifar10_kfold_splits(experiments_config.KFOLD_N_SPLITS)
         
@@ -50,7 +47,7 @@ class GenerateFoldsStep(beam.DoFn, StepInterface):
         return "GenerateFoldsStep"
 
 
-class TrainModel(beam.DoFn, StepInterface):
+class TrainModel(Step):
     def process(self, experiment):
         cf = filter_active(experiments_config.CONFIGS)
         for index, config in enumerate(cf):
@@ -83,7 +80,7 @@ class TrainModel(beam.DoFn, StepInterface):
         return "TrainModel"
 
 
-class EvaluateModel(beam.DoFn, StepInterface):
+class EvaluateModel(Step):
     def process(self, experiment):
         model = experiment['model']
         test_ds = get_cifar10_dataset(experiment['x_test'], experiment['y_test'])
@@ -99,7 +96,7 @@ class EvaluateModel(beam.DoFn, StepInterface):
         return "EvaluateModel"
 
 
-class CorruptionEvaluationStep(beam.DoFn, StepInterface):
+class CorruptionEvaluationStep(Step):
     def process(self, experiment):
         model = experiment['model']
         for corruption in CORRUPTIONS_TYPES:
@@ -114,7 +111,7 @@ class CorruptionEvaluationStep(beam.DoFn, StepInterface):
         return "CorruptionEvaluationStep"
 
 
-class AppendResults(beam.DoFn, StepInterface):
+class AppendResults(Step):
     def __init__(self, output_path, avro_schema):
         self.output_path = output_path
         self.avro_schema = avro_schema

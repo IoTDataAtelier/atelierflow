@@ -1,11 +1,11 @@
-import apache_beam as beam
 from fastavro import writer
 import numpy as np
 from sklearn.model_selection import KFold
 
-from pipeflow.atelierflow.datasets.acoustic_dataset import AcousticDataset
+from atelierflow.datasets.acoustic_dataset import AcousticDataset
+from atelierflow.steps.step import Step
 
-class LoadDataStep(beam.DoFn):
+class LoadDataStep(Step):
     def process(self, element):
         
         train_dataset = AcousticDataset(element['path_input'], include_abnormal=False, pattern=".wav")
@@ -23,7 +23,7 @@ class LoadDataStep(beam.DoFn):
     def name(self):
         return "LoadDataStep"
 
-class PrepareFoldsStep(beam.DoFn):
+class PrepareFoldsStep(Step):
     def process(self, element):
         train_dataset = element['train_dataset']
         X = train_dataset.paths
@@ -37,7 +37,7 @@ class PrepareFoldsStep(beam.DoFn):
     def name(self):
         return "PrepareFoldsStep"
 
-class TrainModelStep(beam.DoFn):
+class TrainModelStep(Step):
     def process(self, element):
 
         train_dataset = element['train_dataset']
@@ -66,7 +66,7 @@ class TrainModelStep(beam.DoFn):
     def name(self):
         return "TrainModelStep"
 
-class EvaluateModelStep(beam.DoFn):
+class EvaluateModelStep(Step):
     def process(self, element):
         model = element['model']
         test_dataset = element['test_dataset']
@@ -80,7 +80,7 @@ class EvaluateModelStep(beam.DoFn):
     def name(self):
         return "EvaluateModelStep"
 
-class AppendResultsStep(beam.DoFn):
+class AppendResultsStep(Step):
     def __init__(self, output_path, avro_schema):
         self.output_path = output_path
         self.avro_schema = avro_schema
