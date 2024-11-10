@@ -1,5 +1,5 @@
 from pathlib import Path
-from pipeflow.atelierflow.datasets.dataset import Dataset
+from atelierflow.datasets.dataset import Dataset
 
 
 class AcousticDataset(Dataset):

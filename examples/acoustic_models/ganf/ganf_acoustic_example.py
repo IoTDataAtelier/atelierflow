@@ -1,9 +1,9 @@
 from fastavro import parse_schema
 import numpy as np
-from pipeflow.atelierflow.metrics.roc_auc import ROCAUC
-from pipeflow.atelierflow import BaseModel, ExperimentBuilder
+from atelierflow.metrics.roc_auc import ROCAUC
+from atelierflow import BaseModel, ExperimentBuilder
 from mtsa.models.ganf import GANF
-from pipeflow.examples.acoustic_models.ganf.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
+from examples.acoustic_models.ganf.ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 
 
 class GANFModel(BaseModel):

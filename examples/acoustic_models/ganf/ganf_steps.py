@@ -3,7 +3,7 @@ from fastavro import writer
 import numpy as np
 from sklearn.model_selection import KFold
 
-from pipeflow.atelierflow.datasets.acoustic_dataset import AcousticDataset
+from atelierflow.datasets.acoustic_dataset import AcousticDataset
 
 class LoadDataStep(beam.DoFn):
     def process(self, element):

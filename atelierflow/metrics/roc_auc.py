@@ -1,5 +1,5 @@
 from mtsa.metrics import calculate_aucroc
-from pipeflow.atelierflow.metrics.metric import BaseMetric
+from atelierflow.metrics.metric import BaseMetric
 
 class ROCAUC(BaseMetric):
   def __init__(self, name):
