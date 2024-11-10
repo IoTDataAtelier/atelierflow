@@ -2,9 +2,6 @@ from fastavro import parse_schema
 import os
 import numpy as np
 from atelierflow import BaseModel, ExperimentBuilder
-import atelierflow.metrics
-print(atelierflow.metrics)
-from atelierflow.metrics.roc_auc import ROCAUC
 from mtsa.models.ganf import GANF  
 from examples.acoustic_models.ganf.ganf_steps import (
     LoadDataStep, 
@@ -13,6 +10,8 @@ from examples.acoustic_models.ganf.ganf_steps import (
     EvaluateModelStep, 
     AppendResultsStep
 )
+from atelierflow.metrics.metric import BaseMetric
+from mtsa.metrics import calculate_aucroc
 
 class GANFModel(BaseModel):
     def __init__(self, model):
@@ -23,6 +22,13 @@ class GANFModel(BaseModel):
 
     def predict(self, X):
         return self.model.predict(X)
+    
+class ROCAUC(BaseMetric):
+    def __init__(self):
+        pass
+
+    def compute(self, model, y, x):
+        return calculate_aucroc(model, x, y)
 
 def main():
     # Definição do Esquema Avro para salvar os resultados

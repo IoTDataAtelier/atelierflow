@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
+import apache_beam as beam
 
-class StepInterface(ABC):
-  @abstractmethod
+class Step(beam.DoFn):
   def process(self, element):
-    pass
+    raise NotImplementedError("Subclasses must implement this method.")
 
-  @abstractmethod
   def name(self):
-    pass
+    raise NotImplementedError("Subclasses must implement this method.")
+
 

@@ -5,6 +5,8 @@ from atelierflow.metrics.roc_auc import ROCAUC
 from mtsa.models import IForest  
 from examples.acoustic_models.out_of_distribution.isolation_forest_ood_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 import os
+from atelierflow.metrics.metric import BaseMetric
+from mtsa.metrics import calculate_aucroc
 
 class IForestModel(BaseModel):
     def __init__(self, model):
@@ -28,6 +30,13 @@ class IForestModel(BaseModel):
             sampling_rate=sampling_rate
         )
         return IForestModel(model=new_model)
+    
+class ROCAUC(BaseMetric):
+    def __init__(self):
+        pass
+
+    def compute(self, model, y, x):
+        return calculate_aucroc(model, x, y)
     
 def main():
     # Definição do Esquema Avro para salvar os resultados

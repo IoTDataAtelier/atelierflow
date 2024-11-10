@@ -1,5 +1,5 @@
 from fastavro import parse_schema
-from .experiments import Experiments
+from atelierflow.experiments import Experiments
 
 class ExperimentBuilder:
     def __init__(self):

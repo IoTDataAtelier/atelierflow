@@ -67,23 +67,4 @@ class AcousticDataset(Dataset):
 
 
 
-# train_dataset = AcousticDataset("/data/marcelo/pipeflow/examples/sample_data", pattern=".wav", include_abnormal=False)
-# test_dataset = AcousticDataset("/data/marcelo/pipeflow/examples/sample_data", pattern=".wav", include_abnormal=True, include_normal=True)
 
-# for path in test_dataset.paths:
-#   print(path)
-
-# train_data_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-# test_data_loader = DataLoader(test_dataset, batch_size=8, shuffle=True)
-
-
-# print("Batches do conjunto de treinamento:")
-# for X_batch, y_batch in train_data_loader:
-#   print("Caminhos dos arquivos no batch:", X_batch)
-#   print("Rótulos dos arquivos no batch:", y_batch)
-#   break 
-
-# print("\nBatches do conjunto de teste:")
-# for X_batch, y_batch in test_data_loader:
-#   print("Caminhos dos arquivos no batch:", X_batch)
-#   print("Rótulos dos arquivos no batch:", y_batch)
