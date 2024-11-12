@@ -2,8 +2,8 @@ from fastavro import parse_schema
 import os
 import numpy as np
 from atelierflow import BaseModel, ExperimentBuilder
-from mtsa.models.ganf import GANF  
-from examples.acoustic_models.ganf.ganf_steps import (
+from mtsa.models.ganf import GANF
+from examples.acoustic_models.out_of_distribution.ganf_ood_steps import (
     LoadDataStep, 
     PrepareFoldsStep, 
     TrainModelStep, 
@@ -56,7 +56,7 @@ def main():
 
     # Definir os parâmetros iniciais incluindo machine_type e IDs
     initial_inputs = {
-        "machine_type": "fan",  
+        "machine_type": "slider",  
         "train_ids": ["id_02", "id_04", "id_06"],
         "test_id": "id_00",
         "batch_size_values": batch_size_values,
@@ -75,7 +75,7 @@ def main():
     builder.add_model(ganf_model)
 
     # Adicionar a métrica AUC ROC
-    builder.add_metric(ROCAUC(name="roc_auc"))
+    builder.add_metric(ROCAUC())
 
     # Definir o diretório de saída para os arquivos Avro
     output_dir = "/data/joao/pipeflow/examples/ganf_ood_results"

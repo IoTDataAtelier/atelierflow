@@ -252,4 +252,5 @@ class GANFBaseModel(nn.Module):
         init = torch.zeros([X.shape[1], X.shape[1]])
         init = xavier_uniform_(init).abs()
         init = init.fill_diagonal_(0.0)
-        return torch.tensor(init, requires_grad=True, device=self.device)
+        return init.clone().detach().requires_grad_(True).to(self.device)
+

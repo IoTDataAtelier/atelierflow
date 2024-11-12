@@ -86,8 +86,8 @@ class LoadDataStep(beam.DoFn):
 class PrepareFoldsStep(beam.DoFn):
     def process(self, element):
         train_dataset = element['train_dataset']
-        X = train_dataset.paths
-        Y = train_dataset.labels
+        X = train_dataset['X']
+        Y = train_dataset['y']
 
         kf = KFold(n_splits=5)
         splits = list(enumerate(kf.split(X, Y)))
@@ -111,18 +111,11 @@ class TrainModelStep(beam.DoFn):
                 print(f'\nBatch Size= {batch_size}, Learning Rate= {learning_rate}\n')
                 for fold, (train_idx, val_idx) in splits:
                     print(f"Fold: {fold + 1}")
-
-                    x_train_fold = [train_dataset.paths[i] for i in train_idx]
-                    y_train_fold = [train_dataset.labels[i] for i in train_idx]
                     
-                    #Falta ajustar o treino aqui utilizar o .clone() como no ganf_steps
+                    x_train_fold = element['train_dataset']['X'][train_idx]
+                    y_train_fold = element['train_dataset']['y'][train_idx]
 
-                    model.fit(
-                        X=x_train_fold, 
-                        y=y_train_fold, 
-                        batch_size=int(batch_size), 
-                        learning_rate=learning_rate
-                    )
+                    model.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate)
 
                     element['sampling_rate'] = model.sampling_rate
                     element['model'] = model 
