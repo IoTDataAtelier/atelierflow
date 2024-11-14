@@ -144,6 +144,69 @@ class EvaluateModelStep(beam.DoFn):
 
     def name(self):
         return "EvaluateModelStep"
+    
+class AssignKeyStep(beam.DoFn):
+    def process(self, element):
+        """
+        Atribui uma chave única para cada configuração de experimento baseada em um conjunto de parâmetros.
+        """
+        n_estimators = element.get('n_estimators', 'auto')
+        max_features = element.get('max_features', 'auto')
+        contamination = element.get('contamination', 'auto')
+        max_samples = element.get('max_samples', 'auto')
+        sampling_rate = element.get('sampling_rate', 'auto')
+
+        key = (n_estimators, max_features, contamination, max_samples, sampling_rate)
+
+        yield (key, element['AUC_ROC'])
+    
+    def name(self):
+        return "AssignKeyStep"
+
+    
+class CalculateConfidenceIntervalStep(beam.DoFn):
+    def __init__(self, num_bootstrap=1000, confidence_level=0.95):
+        self.num_bootstrap = num_bootstrap
+        self.confidence_level = confidence_level
+
+    def process(self, element):
+        """
+        Recebe um par (chave, lista de AUC_ROC).
+        Calcula o intervalo de confiança de 95% usando Bootstrap.
+        
+        Retorna um dicionário com lower_bound, mean_auc, e upper_bound.
+        """
+        key, auc_scores = element
+        n_estimators, max_features, contamination, max_samples, sampling_rate = key
+
+        if not auc_scores:
+            print(f"Sem scores AUC_ROC disponíveis para configuração: n_estimators={n_estimators}, max_features={max_features}, contamination={contamination}, max_samples={max_samples}, sampling_rate={sampling_rate}.")
+            return
+
+        bootstrap_means = []
+        for _ in range(self.num_bootstrap):
+            sample = np.random.choice(auc_scores, size=len(auc_scores), replace=True)
+            bootstrap_means.append(np.mean(sample))
+
+        lower_bound = np.percentile(bootstrap_means, (1 - self.confidence_level) / 2 * 100)
+        upper_bound = np.percentile(bootstrap_means, (1 + self.confidence_level) / 2 * 100)
+        mean_auc = np.mean(auc_scores)
+
+        confidence_record = {
+            "n_estimators": str(n_estimators),
+            "max_features": str(max_features),
+            "contamination": str(contamination),
+            "max_samples": str(max_samples),
+            "sampling_rate": str(sampling_rate),
+            "lower_bound": lower_bound,
+            "mean_auc": mean_auc,
+            "upper_bound": upper_bound
+        }
+
+        yield confidence_record
+
+    def name(self):
+        return "CalculateConfidenceIntervalStep"
 
 class AppendResultsStep(beam.DoFn):
     def __init__(self, output_dir, avro_schema):
@@ -151,15 +214,19 @@ class AppendResultsStep(beam.DoFn):
         self.avro_schema = avro_schema
 
     def process(self, element):
+        """
+        Processa os registros de confiança e os salva em arquivos Avro separados por configuração.
+        """
         n_estimators = element.get('n_estimators', 'auto')
         max_features = element.get('max_features', 'auto')
         contamination = element.get('contamination', 'auto')
         max_samples = element.get('max_samples', 'auto')
         sampling_rate = element.get('sampling_rate', 'auto')
-        AUC_ROC = element.get('AUC_ROC', 'auto')
-        machine_type = element.get('machine_type', 'unknown')
+        lower_bound = element.get('lower_bound', 'auto')
+        mean_auc = element.get('mean_auc', 'auto')
+        upper_bound = element.get('upper_bound', 'auto')
 
-        print(f"  -> Appending results for model {type(element['model']).__name__} to Avro file...\n")
+        print(f"  -> Salvando resultados de confiança para configuração: n_estimators={n_estimators}, max_features={max_features}, contamination={contamination}, max_samples={max_samples}, sampling_rate={sampling_rate} no arquivo Avro...\n")
 
         record = {
             "n_estimators": str(n_estimators),
@@ -167,11 +234,14 @@ class AppendResultsStep(beam.DoFn):
             "contamination": str(contamination),
             "max_samples": str(max_samples),
             "sampling_rate": str(sampling_rate),
-            "AUC_ROC": str(AUC_ROC)
+            "lower_bound": float(lower_bound),
+            "mean_auc": float(mean_auc),
+            "upper_bound": float(upper_bound)
         }
 
-        # Definir o caminho de saída específico para a máquina
-        output_path = os.path.join(self.output_dir, f"isolation_forest_ood_results_{machine_type}.avro")
+        # Definir o caminho de saída específico para a configuração
+        config_identifier = f"n_estimators_{n_estimators}_max_features_{max_features}_contamination_{contamination}_max_samples_{max_samples}_sampling_rate_{sampling_rate}"
+        output_path = os.path.join(self.output_dir, f"isolation_forest_confidence_results_{config_identifier}.avro")
 
         # Escrever o registro no arquivo Avro correspondente
         with open(output_path, "a+b") as out:

@@ -27,8 +27,8 @@ class ROCAUC(BaseMetric):
     def __init__(self):
         pass
 
-    def compute(self, model, y, x):
-        return calculate_aucroc(model, x, y)
+    def compute(self, model, X, y):
+        return calculate_aucroc(model, X, y)
 
 def main():
     # Definição do Esquema Avro para salvar os resultados

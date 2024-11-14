@@ -1,11 +1,11 @@
 from fastavro import parse_schema
-import numpy as np
 from atelierflow import BaseModel, ExperimentBuilder
 from mtsa.models import IForest  
-from examples.acoustic_models.out_of_distribution.isolation_forest_ood_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
+from examples.acoustic_models.out_of_distribution.isolation_forest_ood_steps_ci import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AssignKeyStep, CalculateConfidenceIntervalStep, AppendResultsStep
 import os
 from atelierflow.metrics.metric import BaseMetric
 from mtsa.metrics import calculate_aucroc
+import apache_beam as beam
 
 class IForestModel(BaseModel):
     def __init__(self, model):
@@ -40,18 +40,20 @@ class ROCAUC(BaseMetric):
 def main():
     # Definição do Esquema Avro para salvar os resultados
     avro_schema = {
-        "namespace": "example.avro",
-        "type": "record",
-        "name": "ModelResult",
-        "fields": [
-            {"name": "n_estimators", "type": "string"},
-            {"name": "max_features", "type": "string"},
-            {"name": "contamination", "type": "string"},
-            {"name": "max_samples", "type": "string"},
-            {"name": "sampling_rate", "type": "string"},
-            {"name": "AUC_ROC", "type": "string"},
-        ],
-    }
+    "namespace": "example.avro",
+    "type": "record",
+    "name": "ModelConfidenceResult",
+    "fields": [
+        {"name": "n_estimators", "type": "string"},
+        {"name": "max_features", "type": "string"},
+        {"name": "contamination", "type": "string"},
+        {"name": "max_samples", "type": "string"},
+        {"name": "sampling_rate", "type": "string"},
+        {"name": "lower_bound", "type": "float"},
+        {"name": "mean_auc", "type": "float"},
+        {"name": "upper_bound", "type": "float"},
+    ],
+}
 
     # Instanciar o ExperimentBuilder
     builder = ExperimentBuilder()
@@ -62,7 +64,7 @@ def main():
     n_estimators_values = [2, 10, 40, 70, 100]
 
     initial_inputs = {
-        "machine_type": "valve",  
+        "machine_type": "pump",  
         "train_ids": ["id_02", "id_04", "id_06"],
         "test_id": "id_00",
         "models": [IForestModel(model=IForest(
@@ -92,6 +94,9 @@ def main():
     builder.add_step(PrepareFoldsStep())
     builder.add_step(TrainModelStep())
     builder.add_step(EvaluateModelStep())
+    builder.add_step(AssignKeyStep())
+    builder.add_step(beam.GroupByKey())  
+    builder.add_step(CalculateConfidenceIntervalStep())
     builder.add_step(AppendResultsStep(output_dir, parse_schema(avro_schema)))
 
     # Construir o objeto Experiments
