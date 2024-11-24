@@ -101,6 +101,7 @@ class TrainModelStep(beam.DoFn):
     def process(self, element):
         train_dataset = element['train_dataset']
         model = element['proxy_model'].model  
+        test_dataset = element['test_dataset']
         batch_size_values = element.get('batch_size_values', [32])
         learning_rate_values = element.get('learning_rate_values', [1e-3])
         splits = element['splits']
@@ -115,13 +116,17 @@ class TrainModelStep(beam.DoFn):
                     x_train_fold = element['train_dataset']['X'][train_idx]
                     y_train_fold = element['train_dataset']['y'][train_idx]
 
-                    model.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate)
+                    model_cp = model.clone()
+                    model_cp.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate, epochs=1)
 
                     element['sampling_rate'] = model.sampling_rate
                     element['model'] = model 
                     element['batch_size'] = batch_size
                     element['learning_rate'] = learning_rate
+                    element['test_dataset'] = test_dataset
                     yield element
+                    del model_cp
+
 
     def name(self):
         return "TrainModelStep"
@@ -132,8 +137,8 @@ class EvaluateModelStep(beam.DoFn):
         test_dataset = element['test_dataset']
         metric = element['metric']
 
-        paths_array = np.array(test_dataset.paths, dtype='<U90')
-        auc = metric.compute(model, paths_array, test_dataset.labels)
+        paths_array = np.array(test_dataset['X'], dtype='<U90')
+        auc = metric.compute(model, paths_array, test_dataset['y'])
         element['AUC_ROC'] = auc
         yield element
 

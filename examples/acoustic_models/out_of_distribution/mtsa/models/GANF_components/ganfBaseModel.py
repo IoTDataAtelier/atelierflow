@@ -26,7 +26,7 @@ class GANFBaseModel(nn.Module):
                   weight_decay = float(5e-4),
                   epochs = 20,
                   device = None,
-                  index_CUDA_device = None
+                  index_CUDA_device = '0'
                   ):
         super().__init__()
         self.min = 0
@@ -252,5 +252,4 @@ class GANFBaseModel(nn.Module):
         init = torch.zeros([X.shape[1], X.shape[1]])
         init = xavier_uniform_(init).abs()
         init = init.fill_diagonal_(0.0)
-        return init.clone().detach().requires_grad_(True).to(self.device)
-
+        return torch.tensor(init, requires_grad=True, device=self.device)

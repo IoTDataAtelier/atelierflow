@@ -10,7 +10,6 @@ from mtsa.models.GANF_components.ganfBaseModel import GANFBaseModel
 from mtsa.utils import Wav2Array
 from sklearn.pipeline import Pipeline
 from mtsa.utils import Wav2Array
-import torch
 
 class GANF(nn.Module, BaseEstimator, OutlierMixin):
 
@@ -31,11 +30,7 @@ class GANF(nn.Module, BaseEstimator, OutlierMixin):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.mono = mono
-        
-        device = torch.device('cpu')
-        print(f"GANF will be using device: {device}")
-        
-        self.final_model = GANFBaseModel(device=device)
+        self.final_model = GANFBaseModel(index_CUDA_device=index_CUDA_device)
         self.use_array2mfcc = use_array2mfcc
         self.model = self._build_model()
 
@@ -86,6 +81,18 @@ class GANF(nn.Module, BaseEstimator, OutlierMixin):
     
     def get_adjacent_matrix(self):
         return self.final_model.get_adjacent_matrix()
+
+    def clone(self):
+        cloned_ganf = GANF(
+            sampling_rate=self.sampling_rate,
+            random_state=self.random_state,
+            isForWaveData=self.isForWaveData,
+            batch_size=self.batch_size,
+            learning_rate=self.learning_rate,
+            mono=self.mono,
+            use_array2mfcc=self.use_array2mfcc,
+        )
+        return cloned_ganf
 
     def _build_model(self):
         array2mfcc = Array2Mfcc(sampling_rate=self.sampling_rate)

@@ -3,7 +3,7 @@ import os
 import numpy as np
 from atelierflow import BaseModel, ExperimentBuilder
 from mtsa.models.ganf import GANF
-from examples.acoustic_models.out_of_distribution.ganf_ood_steps import (
+from ganf_ood_steps import (
     LoadDataStep, 
     PrepareFoldsStep, 
     TrainModelStep, 
@@ -50,7 +50,7 @@ def main():
     builder.set_avro_schema(avro_schema)
 
     # Definir os parâmetros para o modelo GANF
-    batch_size_values = [1024, 512, 256, 128, 64, 32]
+    batch_size_values = [1024]
     learning_rate_values = [1e-9]
     sampling_rate_sound = 16000
 
@@ -78,7 +78,7 @@ def main():
     builder.add_metric(ROCAUC())
 
     # Definir o diretório de saída para os arquivos Avro
-    output_dir = "/data/joao/pipeflow/examples/ganf_ood_results"
+    output_dir = "/data/marcelo/pipeflow/examples/ganf_ood_results"
     os.makedirs(output_dir, exist_ok=True)  
 
     # Adicionar os passos do pipeline
