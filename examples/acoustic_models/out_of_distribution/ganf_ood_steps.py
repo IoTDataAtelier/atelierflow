@@ -145,6 +145,7 @@ class EvaluateModelStep(beam.DoFn):
     def name(self):
         return "EvaluateModelStep"
 
+
 class AppendResultsStep(beam.DoFn):
     def __init__(self, output_dir, avro_schema):
         self.output_dir = output_dir

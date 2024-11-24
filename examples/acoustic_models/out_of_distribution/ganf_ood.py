@@ -78,7 +78,7 @@ def main():
     builder.add_metric(ROCAUC())
 
     # Definir o diretório de saída para os arquivos Avro
-    output_dir = "/data/marcelo/pipeflow/examples/ganf_ood_results"
+    output_dir = "/data/joao/pipeflow/examples/ganf_ood_results"
     os.makedirs(output_dir, exist_ok=True)  
 
     # Adicionar os passos do pipeline
