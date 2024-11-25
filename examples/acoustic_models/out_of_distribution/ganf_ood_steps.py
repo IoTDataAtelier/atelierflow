@@ -117,7 +117,7 @@ class TrainModelStep(beam.DoFn):
                     y_train_fold = element['train_dataset']['y'][train_idx]
 
                     model_cp = model.clone()
-                    model_cp.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate, epochs=1)
+                    model_cp.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate)
 
                     element['sampling_rate'] = model.sampling_rate
                     element['model'] = model 
