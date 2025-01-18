@@ -1,12 +1,12 @@
 from fastavro import parse_schema
 import numpy as np
 from atelierflow import BaseModel, ExperimentBuilder
-from mtsa.models.ganf import GANF
-from ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
+from mtsa.models.ransyncorders import RANSynCoders
+from rans_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, AppendResultsStep
 from atelierflow.metrics.metric import BaseMetric
 from mtsa.metrics import calculate_aucroc
 
-class GANFModel(BaseModel):
+class RANSModel(BaseModel):
     def __init__(self, model):
         self.model = model
 
@@ -50,10 +50,10 @@ def main():
     "path_input": "/data/marcelo/pipeflow/examples/sample_data"
   }
   # Instantiate the GANF model
-  ganf_model = GANFModel(model=GANF(sampling_rate=sampling_rate_sound, mono=True, use_array2mfcc=True, isForWaveData=True, batch_size=5))
+  rans_model = RANSModel(model=RANSynCoders(is_acoustic_data=True, mono=True, normal_classifier=1, abnormal_classifier=0, synchronize=True))
 
   # Add the GANF model to the builder
-  builder.add_model(ganf_model)
+  builder.add_model(rans_model)
 
   # Add the AUC ROC metric
   builder.add_metric(ROCAUC())
@@ -63,7 +63,6 @@ def main():
   builder.add_step(LoadDataStep())
   builder.add_step(PrepareFoldsStep())
   builder.add_step(TrainModelStep())
-  builder.add_step(EvaluateModelStep())
   builder.add_step(AppendResultsStep(output_path, parse_schema(avro_schema)))
 
   # Build the experiments object
