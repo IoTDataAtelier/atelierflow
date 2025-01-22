@@ -4,5 +4,6 @@ build
 .jupyter
 .local
 dist/
+venv/
 
 *.egg-info/
