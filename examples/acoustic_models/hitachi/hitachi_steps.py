@@ -1,21 +1,20 @@
 from fastavro import writer
 import numpy as np
 from sklearn.model_selection import KFold
-from mtsa.utils import files_train_test_split
-from atelierflow.utils.modelFactory import ModelFactory
+
+from atelierflow.datasets.acoustic_dataset import AcousticDataset
 from atelierflow.steps.step import Step
 
 class LoadDataStep(Step):
     def process(self, element):
-        X_train, X_test, y_train, y_test = files_train_test_split(element['path'])
-      
+        
+        train_dataset = AcousticDataset(element['path_input'], include_abnormal=False, pattern=".wav")
+        test_dataset = AcousticDataset(element['path_input'], include_abnormal=True, pattern=".wav")
+        
         yield {
-            'X_train': X_train,
-            'X_test': X_test,
-            'y_train': y_train,
-            'y_test': y_test,
-            'model_class': element['models'][0],
-            'model_kwargs': element['model_kwargs'],
+            'train_dataset': train_dataset,
+            'test_dataset': test_dataset,
+            'proxy_model': element['models'][0],
             'metric': element['metrics'][0],
             'learning_rate_values': element['learning_rate_values'],
             'batch_size_values': element['batch_size_values']
@@ -26,11 +25,12 @@ class LoadDataStep(Step):
 
 class PrepareFoldsStep(Step):
     def process(self, element):
-        X_train = element['X_train']
-        y_train = element['y_train']
+        train_dataset = element['train_dataset']
+        X = train_dataset.paths
+        Y = train_dataset.labels
 
         kf = KFold(n_splits=5)
-        splits = list(enumerate(kf.split(X_train, y_train)))
+        splits = list(enumerate(kf.split(X, Y)))
         element['splits'] = splits
         yield element
 
@@ -40,11 +40,8 @@ class PrepareFoldsStep(Step):
 class TrainModelStep(Step):
     def process(self, element):
 
-        X_train = element['X_train']
-        y_train = element['y_train']
-
-        model_class = element['model_class']
-        model_kwargs = element['model_kwargs']
+        train_dataset = element['train_dataset']
+        model = element['proxy_model'].model
         
         for learning_rate in element['learning_rate_values']:
             for batch_size in element['batch_size_values']:
@@ -52,15 +49,19 @@ class TrainModelStep(Step):
                 for fold, (train_index, val_index) in element['splits']:
                     print(f"Fold: {fold + 1}")
 
-                    x_train_fold, y_train_fold = X_train[train_index], y_train[train_index]
-                    model = ModelFactory.create_model(model_class, **model_kwargs)
-                    model.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate, epochs=2)
+
+                    x_train_fold = [train_dataset.paths[i] for i in train_index]
+                    y_train_fold = [train_dataset.labels[i] for i in train_index]
+
+                    model_copy = model.clone()
+                    model_copy.fit(x_train_fold, y_train_fold, batch_size=int(batch_size), learning_rate=learning_rate)
+
                     element['sampling_rate'] = model.sampling_rate
-                    element['model'] = model
+                    element['model'] = model_copy
                     element['batch_size'] = batch_size
                     element['learning_rate'] = learning_rate
                     yield element
-                    del model
+                    del model_copy
 
     def name(self):
         return "TrainModelStep"
@@ -68,11 +69,11 @@ class TrainModelStep(Step):
 class EvaluateModelStep(Step):
     def process(self, element):
         model = element['model']
-        X_test = element['X_test']
-        y_test = element['y_test']
+        test_dataset = element['test_dataset']
         metric = element['metric']
 
-        auc = metric.compute(model, X_test, y_test)
+        paths_array = np.array(test_dataset.paths, dtype='<U90')
+        auc = metric.compute(model, paths_array, test_dataset.labels)
         element['AUC_ROC'] = auc
         yield element
 
@@ -103,8 +104,6 @@ class AppendResultsStep(Step):
         }
         with open(self.output_path, "a+b") as out:
             writer(out, self.avro_schema, [record])
-
-        yield element
 
     def name(self):
         return "AppendResultsStep"

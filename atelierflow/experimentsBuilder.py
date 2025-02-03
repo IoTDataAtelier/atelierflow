@@ -4,9 +4,11 @@ from atelierflow.experiments import Experiments
 class ExperimentBuilder:
     def __init__(self):
         self.experiments = Experiments()
+        self.model_kwargs = {}
 
-    def add_model(self, model):
-        self.experiments.add_model(model)
+    def add_model(self, model_class, **kwargs):
+        self.experiments.add_model(model_class)
+        self.model_kwargs = kwargs
         return self
 
     def add_metric(self, metric):
@@ -29,9 +31,5 @@ class ExperimentBuilder:
         self.experiments.avro_schema = parse_schema(avro_schema)
         return self
     
-    def set_cross_validation(self, boolean):
-        self.experiments.cross_validation = boolean
-        return self
-
     def build(self):
-        return self.experiments
+        return self.experiments, self.model_kwargs

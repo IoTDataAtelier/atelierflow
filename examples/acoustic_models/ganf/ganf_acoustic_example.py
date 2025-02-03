@@ -1,26 +1,16 @@
 from fastavro import parse_schema
 import numpy as np
-from atelierflow import BaseModel, ExperimentBuilder
+from atelierflow import ExperimentBuilder
 from mtsa.models.ganf import GANF
 from ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 from atelierflow.metrics.metric import BaseMetric
 from mtsa.metrics import calculate_aucroc
 
-class GANFModel(BaseModel):
-    def __init__(self, model):
-        self.model = model
-
-    def fit(self, X, y, **kwargs):
-        self.model.fit(X, y, **kwargs)
-
-    def predict(self, X):
-        return self.model.predict(X)
-
 class ROCAUC(BaseMetric):
     def __init__(self):
         pass
 
-    def compute(self, model, y, x):
+    def compute(self, model, x, y):
         return calculate_aucroc(model, x, y)
 
 def main():
@@ -40,34 +30,33 @@ def main():
   }
 
   # Instantiate the ExperimentBuilder
-  builder = ExperimentBuilder()
-  builder.set_avro_schema(avro_schema)
+  experiment1 = ExperimentBuilder()
+  experiment1.set_avro_schema(avro_schema)
   sampling_rate_sound = 16000              
   
-  initial_inputs = {
-    "batch_size_values": np.array([1024, 512, 256, 128, 64, 32]),
-    "learning_rate_values": np.array([1e-9]),
-    "path_input": "/data/marcelo/pipeflow/examples/sample_data"
-  }
-  # Instantiate the GANF model
-  ganf_model = GANFModel(model=GANF(sampling_rate=sampling_rate_sound, mono=True, use_array2mfcc=True, isForWaveData=True, batch_size=5))
-
   # Add the GANF model to the builder
-  builder.add_model(ganf_model)
+  experiment1.add_model(GANF, sampling_rate=sampling_rate_sound, mono=True, use_array2mfcc=True, isForWaveData=True)
 
   # Add the AUC ROC metric
-  builder.add_metric(ROCAUC())
+  experiment1.add_metric(ROCAUC())
 
   # Define the output path for the Avro file
   output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"
-  builder.add_step(LoadDataStep())
-  builder.add_step(PrepareFoldsStep())
-  builder.add_step(TrainModelStep())
-  builder.add_step(EvaluateModelStep())
-  builder.add_step(AppendResultsStep(output_path, parse_schema(avro_schema)))
+  experiment1.add_step(LoadDataStep())
+  experiment1.add_step(PrepareFoldsStep())
+  experiment1.add_step(TrainModelStep())
+  experiment1.add_step(EvaluateModelStep())
+  experiment1.add_step(AppendResultsStep(output_path, parse_schema(avro_schema)))
 
   # Build the experiments object
-  experiments = builder.build()
+  experiments, model_kwargs = experiment1.build()
+
+  initial_inputs = {
+    "batch_size_values": np.array([32]),
+    "learning_rate_values": np.array([1e-9]),
+    "path": "/data/MIMII/slider/id_00",
+    'model_kwargs': model_kwargs
+  }
 
   # Run the experiments
   experiments.run(initial_inputs)

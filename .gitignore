@@ -1,6 +1,6 @@
 __pycache__
 build
-
+atelier-env
 .jupyter
 .local
 dist/
