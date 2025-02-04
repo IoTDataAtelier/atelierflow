@@ -2,17 +2,17 @@ from fastavro import parse_schema
 from atelierflow.experiments import Experiments
 
 class ExperimentBuilder:
-    def __init__(self):
-        self.experiments = Experiments()
-        self.model_kwargs = {}
+    def __init__(self, name):
+        self.experiments = Experiments(name)
+        self.model_configs = [] 
+        self.metric_configs = []  
 
-    def add_model(self, model_class, **kwargs):
-        self.experiments.add_model(model_class)
-        self.model_kwargs = kwargs
+    def add_model(self, model_class, model_fit_config, **kwargs):
+        self.model_configs.append({"model_class": model_class, "model_kwargs": kwargs})
         return self
 
-    def add_metric(self, metric):
-        self.experiments.add_metric(metric)
+    def add_metric(self, metric_class, **kwargs):
+        self.metric_configs.append({"metric_class": metric_class, "metric_kwargs": kwargs})
         return self
 
     def add_train_dataset(self, train_dataset):
@@ -32,4 +32,11 @@ class ExperimentBuilder:
         return self
     
     def build(self):
-        return self.experiments, self.model_kwargs
+        for config in self.model_configs:
+            self.experiments.add_model(config["model_class"])
+
+        # Adiciona métricas ao experimento
+        for config in self.metric_configs:
+            self.experiments.add_metric(config["metric_class"])
+
+        return self.experiments, self.model_configs, self.metric_configs

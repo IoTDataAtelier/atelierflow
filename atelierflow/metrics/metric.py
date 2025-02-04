@@ -5,5 +5,5 @@ class BaseMetric(ABC):
     raise NotImplementedError("Subclasses must implement this method.")
 
   @abstractmethod
-  def compute(self):
+  def compute(self, **kwargs):
     raise NotImplementedError("Subclasses must implement this method.")

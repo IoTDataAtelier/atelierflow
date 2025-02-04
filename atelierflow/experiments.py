@@ -3,7 +3,8 @@ from apache_beam.options.pipeline_options import PipelineOptions
 
 
 class Experiments:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.models = []
         self.metrics = []
         self.train_datasets = []
