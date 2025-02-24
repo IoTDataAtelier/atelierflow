@@ -7,8 +7,8 @@ class ExperimentBuilder:
         self.model_configs = [] 
         self.metric_configs = []  
 
-    def add_model(self, model_class, model_fit_config, **kwargs):
-        self.model_configs.append({"model_class": model_class, "model_kwargs": kwargs})
+    def add_model(self, model_config):
+        self.model_configs.append(model_config)
         return self
 
     def add_metric(self, metric_class, **kwargs):
@@ -33,9 +33,8 @@ class ExperimentBuilder:
     
     def build(self):
         for config in self.model_configs:
-            self.experiments.add_model(config["model_class"])
+            self.experiments.add_model(config)
 
-        # Adiciona métricas ao experimento
         for config in self.metric_configs:
             self.experiments.add_metric(config["metric_class"])
 
