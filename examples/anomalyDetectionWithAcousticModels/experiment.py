@@ -45,6 +45,7 @@ def main():
     ]
   }
 
+
   output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"           
 
 
