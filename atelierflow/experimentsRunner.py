@@ -10,10 +10,11 @@ class ExperimentRunner:
       print(f"Running experiment: {experiments.name}")
 
       if initial_input:
-        initial_input.update({
-          "model_configs": model_configs,
-          "metric_configs": metric_configs,
-        })
+        if isinstance(initial_input, list):
+          initial_input = {
+            "path": initial_input, 
+            "model_configs": model_configs,  
+            "metric_configs": metric_configs,
+          }
 
-      # Executa o experimento
       experiments.run(initial_input)

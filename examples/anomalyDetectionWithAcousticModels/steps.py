@@ -1,22 +1,26 @@
 from fastavro import writer
 import numpy as np
 from sklearn.model_selection import KFold
-from mtsa.utils import files_train_test_split
+from mtsa.mtsa.utils import files_train_test_split
 from atelierflow.utils.modelFactory import ModelFactory
 from atelierflow.steps.step import Step
+import json
 
 class LoadDataStep(Step):
   def process(self, element):
-    X_train, X_test, y_train, y_test = files_train_test_split(element['path'])
-  
-    yield {
-      'X_train': X_train,
-      'X_test': X_test,
-      'y_train': y_train,
-      'y_test': y_test,
-      'model_configs': element['model_configs'],
-      'metric_configs': element['metric_configs'],
-    }
+    for path in element['path']:
+      print(f"Processing data from {path}...")
+      X_train, X_test, y_train, y_test = files_train_test_split(path)
+      
+      yield {
+        'X_train': X_train,
+        'X_test': X_test,
+        'y_train': y_train,
+        'y_test': y_test,
+        'model_configs': element['model_configs'],
+        'metric_configs': element['metric_configs'],
+        'path': path 
+      }
 
   def name(self):
     return "LoadDataStep"
@@ -41,7 +45,7 @@ class TrainModelStep(Step):
     model_configs = element['model_configs']
 
     for model_config in model_configs:
-      print(model_config)
+      print(f"Training model with config: {model_config}")
       model_class = model_config.model_class
       model_parameters = model_config.model_parameters
       model_fit_parameters = model_config.model_fit_parameters
@@ -51,11 +55,14 @@ class TrainModelStep(Step):
 
         x_train_fold, y_train_fold = X_train[train_index], y_train[train_index]
 
-        # Cria uma nova instância do modelo
         model = ModelFactory.create_model(model_class, **model_parameters)
         model.fit(x_train_fold, y_train_fold, **model_fit_parameters)
 
         element['model'] = model
+        element['fold'] = fold + 1
+        element['model_parameters'] = model_parameters
+        element['model_fit_parameters'] = model_fit_parameters
+
         yield element
         del model
 
@@ -69,19 +76,19 @@ class EvaluateModelStep(Step):
     y_test = element['y_test']
     metric_configs = element['metric_configs']
 
+    metrics = {}
+
     for metric_config in metric_configs:
       metric_class = metric_config["metric_class"]
       metric_kwargs = metric_config["metric_kwargs"]
 
-      # Cria uma instância da métrica
       metric = metric_class(**metric_kwargs)
-
-      # Calcula a métrica
       score = metric.compute(model, X_test, y_test)
+
       print(f"Score for {metric_class.__name__}: {score}")
+      metrics[metric_class.__name__] = str(score)
 
-      element[f"AUC"] = score
-
+    element['metrics'] = metrics
     yield element
 
   def name(self):
@@ -93,15 +100,27 @@ class AppendResultsStep(Step):
     self.avro_schema = avro_schema
 
   def process(self, element):
-    AUC_ROCs = element['AUC']
+    metrics = element['metrics']
     model = element['model']
+    fold = element['fold']
+    model_parameters = element['model_parameters']
+    model_fit_parameters = element['model_fit_parameters']
+
+    additional = {
+      "fold": str(fold),
+      "model_parameters": json.dumps(model_parameters),
+      "model_fit_parameters": json.dumps(model_fit_parameters)
+    }
 
     print(f"  -> Appending results for model {type(model).__name__} to Avro file...\n")
 
     record = {
       "model_name": str(type(model).__name__),
-      "AUC_ROCs": str(AUC_ROCs)
+      "metrics": metrics,
+      "additional": additional 
     }
+
+    # Salvar no arquivo Avro
     with open(self.output_path, "a+b") as out:
       writer(out, self.avro_schema, [record])
 
@@ -109,5 +128,3 @@ class AppendResultsStep(Step):
 
   def name(self):
     return "AppendResultsStep"
-
-

@@ -1,13 +1,13 @@
 from fastavro import parse_schema
 import numpy as np
 from atelierflow import ExperimentBuilder
-from atelierflow.model import BaseModel
-from mtsa.models.ganf import GANF
-from mtsa.models.hitachi import Hitachi
-from ganf_steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
+from mtsa.mtsa.models.ganf import GANF
+from mtsa.mtsa.models.isolationforest import IForest
+from mtsa.mtsa.models.oneClassSVM import OneClassSVM
+from steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 from atelierflow.metrics.metric import BaseMetric
 from atelierflow.experimentsRunner import ExperimentRunner
-from mtsa.metrics import calculate_aucroc
+from mtsa.mtsa.metrics import calculate_aucroc
 from atelierflow.utils.modelConfig import ModelConfig
 
 class ROCAUC(BaseMetric):
@@ -24,10 +24,27 @@ def main():
     "type": "record",
     "name": "ModelResult",
     "fields": [
-      {"name": "model_name", "type": "string"},
-      {"name": "AUC_ROCs", "type": "string"},
-    ],
+      {
+        "name": "model_name",
+        "type": "string"
+      },
+      {
+        "name": "metrics",
+        "type": {
+          "type": "map",
+          "values": "string"  
+        }
+      },
+      {
+        "name": "additional",
+        "type": {
+          "type": "map",
+          "values": "string" 
+        }
+      }
+    ]
   }
+
   output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"           
 
 
@@ -35,17 +52,20 @@ def main():
   experiment1 = ExperimentBuilder('Mtsa Experiments')
   experiment1.set_avro_schema(avro_schema)
 
- 
-  hitachi_config = ModelConfig(
-    model_class=Hitachi,
-    model_parameters={},
-    model_fit_parameters={},
+  isolation = ModelConfig(
+    model_class=IForest,
   )
-  experiment1.add_model(hitachi_config)
+  experiment1.add_model(isolation)
+
+  # oneClass = ModelConfig(
+  #   model_class=OneClassSVM,
+  #   model_parameters={"kernel":"rbf", "nu":0.1}
+  # )
+  # experiment1.add_model(oneClass)
 
   ganf_config = ModelConfig(
     model_class=GANF,
-    model_parameters={"sampling_rate": 16000, "mono": True, "use_array2mfcc": True, "isForWaveData": True},
+    model_parameters={"sampling_rate": 16000, "mono": True, "use_array2mfcc": True, "isForWaveData": True, "device": "cpu"},
     model_fit_parameters={"batch_size": 32, "learning_rate": 1e-4, "epochs": 2},
   )
   experiment1.add_model(ganf_config)
@@ -63,11 +83,12 @@ def main():
   runner.add_experiment(experiments, model_configs, metric_configs) 
 
 
-  initial_inputs = {
-    "path": "/data/marcelo/pipeflow/examples/sample_data/machine_type_1/id_00",
-  }
+  initial_inputs = [
+    "/data/marcelo/pipeflow/examples/sample_data/machine_type_1/id_00",
+  ]
+
 
   runner.run_all(initial_input=initial_inputs)
 
 if __name__ == "__main__":
-    main()
+  main()
