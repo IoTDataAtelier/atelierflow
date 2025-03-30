@@ -1,7 +1,7 @@
 from fastavro import writer
 import numpy as np
 from sklearn.model_selection import KFold
-from mtsa.mtsa.utils import files_train_test_split
+from mtsa.utils import files_train_test_split
 from atelierflow.utils.modelFactory import ModelFactory
 from atelierflow.steps.step import Step
 import json
