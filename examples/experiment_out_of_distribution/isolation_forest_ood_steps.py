@@ -104,14 +104,15 @@ class TrainModelStep(Step):
                 
                 model_instance = config_copy.model_class(**config_copy.model_parameters)
                 print(f"Training model with n_estimators={n_estimators}, max_features={max_features}")
-                model_instance.fit(X_train, y_train)
+                train_time = model_instance.fit(X_train, y_train)
                 trained_models.append({
                     'model': model_instance,
                     'n_estimators': str(n_estimators),
                     'max_features': str(max_features),
                     'max_samples': str(config_copy.model_parameters.get("max_samples")),
                     'contamination': str(config_copy.model_parameters.get("contamination")),
-                    'sampling_rate': str(config_copy.model_parameters.get("sampling_rate"))
+                    'sampling_rate': str(config_copy.model_parameters.get("sampling_rate")),
+                    'train_time_sec': str(train_time)
                 })
         element['trained_models'] = trained_models
         yield element
@@ -148,6 +149,7 @@ class AppendResultsStep(Step):
                 "contamination": model_info.get("contamination", ""),
                 "max_samples": model_info.get("max_samples", ""),
                 "sampling_rate": model_info.get("sampling_rate", ""),
+                "train_time_sec": model_info.get("train_time_sec", ""),
                 "AUC_ROC": model_info.get("AUC_ROC", "")
             }
             results.append(result_record)

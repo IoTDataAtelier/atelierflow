@@ -30,10 +30,12 @@ def main():
          "type": "record",
          "name": "ModelResult",
          "fields": [
+             {"name": "model_name", "type": "string"},
              {"name": "batch_size", "type": "string"},
              {"name": "epoch_size", "type": "string"},
              {"name": "learning_rate", "type": "string"},
              {"name": "sampling_rate", "type": "string"},
+             {"name": "train_time_sec", "type": "string"},
              {"name": "AUC_ROCs", "type": "string"},
          ],
      }
@@ -41,7 +43,6 @@ def main():
     runner = ExperimentRunner()
     experiment = ExperimentBuilder('Out-of-Distribution Hitachi Experiment')
     experiment.set_avro_schema(avro_schema)
-    
     
     batch_size_values = [512, 360, 128, 90, 32]
     learning_rate_values = [1e-3, 1e-6]
@@ -74,7 +75,7 @@ def main():
     folder_name = f"experiment_ood_{model_name}"
     os.makedirs(folder_name, exist_ok=True)
     
-    machine_type = "fan"
+    machine_type = "slider"
     output_path = os.path.join(folder_name, f"experiment_ood_results_{machine_type}.avro")
     
     experiment.add_step(LoadDataStep())

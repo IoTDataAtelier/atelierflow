@@ -81,13 +81,15 @@ class TrainModelStep(Step):
                 print(f"Training GANF model with batch_size={batch_size}, learning_rate={lr}")
                 
                 model_instance = config_copy.model_class(**config_copy.model_parameters)
-                model_instance.fit(X_train, y_train, **config_copy.model_fit_parameters)
+                train_time = model_instance.fit(X_train, y_train, **config_copy.model_fit_parameters)
                 trained_models.append({
                     'model': model_instance,
+                    'model_name': model_instance.__class__.__name__,
                     'batch_size': str(batch_size),
                     'epoch_size': str(epoch_size),
                     'learning_rate': str(lr),
-                    'sampling_rate': str(config_copy.model_parameters.get("sampling_rate"))
+                    'sampling_rate': str(config_copy.model_parameters.get("sampling_rate")),
+                    'train_time_sec': str(train_time)
                 })
         element['trained_models'] = trained_models
         yield element
@@ -119,10 +121,12 @@ class AppendResultsStep(Step):
         results = []
         for model_info in element['trained_models']:
             result_record = {
+                "model_name": model_info.get("model_name", ""),
                 "batch_size": model_info.get("batch_size", ""),
                 "epoch_size": model_info.get("epoch_size", ""),
                 "learning_rate": model_info.get("learning_rate", ""),
                 "sampling_rate": model_info.get("sampling_rate", ""),
+                "train_time_sec": model_info.get("train_time_sec", ""),
                 "AUC_ROCs": model_info.get("AUC_ROCs", "")
             }
             results.append(result_record)

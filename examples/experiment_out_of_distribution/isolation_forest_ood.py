@@ -33,6 +33,7 @@ def main():
              {"name": "contamination", "type": "string"},
              {"name": "max_samples", "type": "string"},
              {"name": "sampling_rate", "type": "string"},
+             {"name": "train_time_sec", "type": "string"},
              {"name": "AUC_ROC", "type": "string"},
          ],
     }
@@ -60,11 +61,12 @@ def main():
     experiment.add_metric(ROCAUC())
 
     model_name = iforest_config.model_class.__name__
-    folder_name = f"experiment_ood_{model_name}"
+    folder_name = f"experiment_ood_{model_name}_testValve"
     os.makedirs(folder_name, exist_ok=True)
     
     machine_type = "valve"
-    output_path = os.path.join(folder_name, f"experiment_ood_results_{machine_type}.avro")
+    train_ids = ["id_02", "id_04", "id_06"]
+    output_path = os.path.join(folder_name, f"experiment_ood_results_{machine_type}_train_ids_{train_ids}.avro")
 
     experiment.add_step(LoadDataStep())
     experiment.add_step(PrepareFoldsStep())
@@ -77,7 +79,7 @@ def main():
 
     initial_inputs = {
         "machine_type": machine_type,
-        "train_ids": ["id_02", "id_04", "id_06"],
+        "train_ids": train_ids,
         "test_id": "id_00",
         "max_features_values": max_features_values,
         "n_estimators_values": n_estimators_values
