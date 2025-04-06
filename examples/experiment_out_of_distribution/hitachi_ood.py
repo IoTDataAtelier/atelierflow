@@ -75,8 +75,8 @@ def main():
     folder_name = f"experiment_ood_{model_name}"
     os.makedirs(folder_name, exist_ok=True)
     
-    machine_type = "slider"
-    output_path = os.path.join(folder_name, f"experiment_ood_results_{machine_type}.avro")
+    machine_type = "fan"
+    output_path = os.path.join(folder_name, f"experiment_ood_results_{machine_type}_withFitTime.avro")
     
     experiment.add_step(LoadDataStep())
     experiment.add_step(PrepareFoldsStep())

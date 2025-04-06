@@ -59,7 +59,7 @@ class AppendResultsStep(Step):
                 "AUC_ROCs": model_info.get("AUC_ROCs", "")
             }
             results.append(result_record)
-        mode = 'wb' if not os.path.exists(self.output_path) else 'ab'
+        mode = 'wb' if not os.path.exists(self.output_path) else 'a+b'
         with open(self.output_path, mode) as out_file:
             writer(out_file, self.avro_schema, results)
         print(f"Appended {len(results)} records to {self.output_path}")
