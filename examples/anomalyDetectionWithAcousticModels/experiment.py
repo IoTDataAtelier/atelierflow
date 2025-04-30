@@ -1,13 +1,23 @@
+import os
+import sys
+
+
+module_path = os.path.abspath(os.path.join('../pipeflow/'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
 from fastavro import parse_schema
 import numpy as np
 from atelierflow import ExperimentBuilder
-from mtsa.mtsa.models.ganf import GANF
-from mtsa.mtsa.models.isolationforest import IForest
-from mtsa.mtsa.models.oneClassSVM import OneClassSVM
+from mtsa.models.ganf import GANF
+from mtsa.models.ransyncorders import RANSynCoders
+from mtsa.models.isolationforest import IForest
+from mtsa.models.oneClassSVM import OneClassSVM
+from mtsa.models.hitachi import Hitachi
 from steps import LoadDataStep, PrepareFoldsStep, TrainModelStep, EvaluateModelStep, AppendResultsStep
 from atelierflow.metrics.metric import BaseMetric
 from atelierflow.experimentsRunner import ExperimentRunner
-from mtsa.mtsa.metrics import calculate_aucroc
+from mtsa.metrics import calculate_aucroc
 from atelierflow.utils.modelConfig import ModelConfig
 
 class ROCAUC(BaseMetric):
@@ -45,7 +55,7 @@ def main():
     ]
   }
 
-  output_path = "/data/marcelo/pipeflow/examples/experiment_results.avro"           
+  output_path = "/data/marcelo/pipeflow/examples/experiment_henrique.avro"           
 
 
   runner = ExperimentRunner()
@@ -56,20 +66,17 @@ def main():
     model_class=IForest,
   )
   experiment1.add_model(isolation)
-
-  # oneClass = ModelConfig(
-  #   model_class=OneClassSVM,
-  #   model_parameters={"kernel":"rbf", "nu":0.1}
-  # )
-  # experiment1.add_model(oneClass)
-
-  ganf_config = ModelConfig(
-    model_class=GANF,
-    model_parameters={"sampling_rate": 16000, "mono": True, "use_array2mfcc": True, "isForWaveData": True, "device": "cpu"},
-    model_fit_parameters={"batch_size": 32, "learning_rate": 1e-4, "epochs": 2},
-  )
-  experiment1.add_model(ganf_config)
   
+  hitachi = ModelConfig(
+    model_class=Hitachi,
+  )
+  experiment1.add_model(hitachi)
+
+  oneClass = ModelConfig(
+    model_class=OneClassSVM,
+    model_parameters={"kernel":"rbf", "nu":0.1}
+  )
+  experiment1.add_model(oneClass)
 
   experiment1.add_metric(ROCAUC)
 
@@ -84,7 +91,10 @@ def main():
 
 
   initial_inputs = [
-    "/data/marcelo/pipeflow/examples/sample_data/machine_type_1/id_00",
+    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config2"),
+    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config3"),
+    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config4"),
+    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config5"),
   ]
 
 
