@@ -91,10 +91,11 @@ def main():
 
 
   initial_inputs = [
-    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config2"),
-    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config3"),
-    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config4"),
-    os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config5"),
+    # os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config2"),
+    # os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config3"),
+    # os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config4"),
+    # os.path.join(os.getcwd(), "..", "..", "henrique", "EmbeddedAI","lacci2025","in_distribution","A29v","config1config5"),
+    "examples/sample_data/machine_type_1/id_00"
   ]
 
 
