@@ -33,7 +33,7 @@ pytz==2024.1
 redis==5.0.8
 referencing==0.35.1
 regex==2024.7.24
-requests==2.31.0
+requests==2.32.4
 rpds-py==0.20.0
 scikit-learn==1.5.1
 scipy==1.14.1
