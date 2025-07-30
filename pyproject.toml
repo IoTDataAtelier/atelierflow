@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "atelierflow"
-version = "0.0.53"
+dynamic = ["version"]
 authors = [
   { name="Marcelo Brito", email="mhbcoelho99@gmail.com" },
 ]
@@ -70,3 +70,7 @@ Homepage = "https://github.com/IoTDataAtelier/pipeflow"
 
 [tool.setuptools.packages.find]
 include = ["atelierflow", "atelierflow.*"]
+
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
