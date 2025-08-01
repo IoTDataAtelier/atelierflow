@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+import logging
+from typing import Any, Dict, Optional
 
 project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root))
@@ -39,11 +41,10 @@ class LoadAndSplitDataStep(Step):
   def __init__(self, directory: str):
     self.directory = directory
 
-  def run(self, input_data: StepResult | None) -> StepResult:
-    print("\n--- Running Load and Split Step ---")
-    print(f"Loading and splitting data from: {self.directory}")
+  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
+    logging.info(f"Loading and splitting data from: {self.directory}")
     X_train, X_test, y_train, y_test = files_train_test_split(self.directory)
-    print("Data loaded and split successfully.")
+    logging.debug("Data loaded and split successfully.")
     result = StepResult()
     result.add('X_train', X_train)
     result.add('X_test', X_test)
@@ -55,14 +56,13 @@ class TrainModelStep(Step):
   def __init__(self, model: Model):
     self.model = model
 
-  def run(self, input_data: StepResult | None) -> StepResult:
-    if not input_data:
+  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
+    if not input_data: 
       raise ValueError("TrainModelStep requires input data.")
-    print("\n--- Running Training Step ---")
     X_train, y_train = input_data.get('X_train'), input_data.get('y_train')
-    print(f"Fitting model '{self.model.__class__.__name__}'...")
+    logging.info(f"Fitting model '{self.model.__class__.__name__}'...")
     self.model.fit(X_train, y_train)
-    print("Model training complete.")
+    logging.info("Model training complete.")
     result = StepResult()
     result.add('model', self.model)
     result.add('X_test', input_data.get('X_test'))
@@ -73,38 +73,33 @@ class EvaluateModelStep(Step):
   def __init__(self, metrics: list[Metric]):
     self.metrics = metrics
 
-  def run(self, input_data: StepResult | None) -> StepResult:
-    if not input_data:
+  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
+    if not input_data: 
       raise ValueError("EvaluateModelStep requires input data.")
-    print("\n--- Running Evaluation Step ---")
     model, X_test, y_test = input_data.get('model'), input_data.get('X_test'), input_data.get('y_test')
-    print("Making predictions on the test set...")
+    logging.info("Making predictions on the test set...")
     y_pred = model.score_samples(X_test)
     scores = {}
     for metric in self.metrics:
       metric_name = metric.__class__.__name__
-      print(f"Calculating metric: {metric_name}")
+      logging.debug(f"Calculating metric: {metric_name}")
       score = metric.compute(y_test, y_pred)
       scores[metric_name] = score
     result = StepResult()
     result.add('evaluation_scores', scores)
-    result.add('X_test_with_results', X_test)
-    result.add('y_test_with_results', y_test)
-    result.add('y_pred_with_results', y_pred)
     return result
 
 class ShowResultsStep(Step):
   def __init__(self):
     pass
   
-  def run(self, input_data: StepResult | None) -> StepResult:
+  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
     if not input_data:
       raise ValueError("SaveResultsStep requires input data.")
-    print("\n--- Running Show Results Step ---")
-    
-    scores = input_data.get('evaluation_scores')
-    
-    print(scores)
+
+    logging.info(f"Running ShowResultsStep")
+    scores = input_data.get('evaluation_scores')  
+    logging.info(f"Final evaluation scores: {scores}")
     
     return input_data
 
@@ -115,7 +110,7 @@ model_component = MyIForest()
 metric_component = AucRocMetric()
 
 # --- 2. Pipeline Assembly ---
-iforest_experiment = Experiment(name="Isolation Forest Anomaly Detection")
+iforest_experiment = Experiment(name="Isolation Forest Anomaly Detection", logging_level="INFO")
 
 iforest_experiment.add_step(LoadAndSplitDataStep(directory=DATA_DIRECTORY))
 iforest_experiment.add_step(TrainModelStep(model=model_component))
