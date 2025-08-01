@@ -16,6 +16,7 @@ from atelierflow.core.metric import Metric
 from atelierflow.core.model import Model
 from atelierflow.core.step import Step
 from atelierflow.core.step_result import StepResult
+from atelierflow.steps.common.save_data.save_to_avro import SaveToAvroStep
 
 # --- Components ---
 class MyIForest(Model):
@@ -89,22 +90,10 @@ class EvaluateModelStep(Step):
     result.add('evaluation_scores', scores)
     return result
 
-class ShowResultsStep(Step):
-  def __init__(self):
-    pass
-  
-  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
-    if not input_data:
-      raise ValueError("SaveResultsStep requires input data.")
-
-    logging.info(f"Running ShowResultsStep")
-    scores = input_data.get('evaluation_scores')  
-    logging.info(f"Final evaluation scores: {scores}")
-    
-    return input_data
 
 # --- 1. Configuration ---
 DATA_DIRECTORY = "/data/henrique/CBICEmbeddedAI/cooling-fans/dB0/A2/12V/config1config5"
+OUTPUT_FILE = "./anomaly_detection_results.avro"
 
 model_component = MyIForest()  
 metric_component = AucRocMetric()
@@ -115,9 +104,13 @@ iforest_experiment = Experiment(name="Isolation Forest Anomaly Detection", loggi
 iforest_experiment.add_step(LoadAndSplitDataStep(directory=DATA_DIRECTORY))
 iforest_experiment.add_step(TrainModelStep(model=model_component))
 iforest_experiment.add_step(EvaluateModelStep(metrics=[metric_component]))
-# Adicionando o novo passo na pipeline
-iforest_experiment.add_step(ShowResultsStep())
 
+iforest_experiment.add_step(
+  SaveToAvroStep(
+    output_path=OUTPUT_FILE,
+    data_key='evaluation_scores' # This must match the key from EvaluateModelStep
+  )
+)
 # --- 3. Execution ---
 final_results = iforest_experiment.run()
 
