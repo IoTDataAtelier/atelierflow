@@ -105,10 +105,21 @@ iforest_experiment.add_step(LoadAndSplitDataStep(directory=DATA_DIRECTORY))
 iforest_experiment.add_step(TrainModelStep(model=model_component))
 iforest_experiment.add_step(EvaluateModelStep(metrics=[metric_component]))
 
+scores_schema = {
+  'doc': 'Schema for storing model evaluation scores.',
+  'name': 'EvaluationScores',
+  'type': 'record',
+  'fields': [
+    {'name': 'AucRocMetric', 'type': ['null', 'double']}
+  ]
+}
+
+
 iforest_experiment.add_step(
   SaveToAvroStep(
     output_path=OUTPUT_FILE,
-    data_key='evaluation_scores' # This must match the key from EvaluateModelStep
+    data_key='evaluation_scores', # This must match the key from EvaluateModelStep
+    schema=scores_schema
   )
 )
 # --- 3. Execution ---
