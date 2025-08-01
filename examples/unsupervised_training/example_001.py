@@ -12,10 +12,10 @@ from mtsa.models import IForest
 from mtsa.utils import files_train_test_split
 
 from atelierflow.experiment import Experiment
-from atelierflow.metrics.metric import Metric
-from atelierflow.model.model import Model
-from atelierflow.steps.step import Step
-from atelierflow.steps.step_result import StepResult
+from atelierflow.core.metric import Metric
+from atelierflow.core.model import Model
+from atelierflow.core.step import Step
+from atelierflow.core.step_result import StepResult
 
 # --- Components ---
 class MyIForest(Model):
