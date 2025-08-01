@@ -1,7 +1,8 @@
 import apache_beam as beam
 from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional
 
-from atelierflow.steps.step_result import StepResult
+from .step_result import StepResult
 
 class Step(ABC):
   """
@@ -13,7 +14,7 @@ class Step(ABC):
   """
 
   @abstractmethod
-  def run(self, input_data: StepResult | None) -> StepResult:
+  def run(self, input_data: Optional[StepResult], experiment_config: Dict[str, Any]) -> StepResult:
     """
     Executes the main logic of the step.
 
