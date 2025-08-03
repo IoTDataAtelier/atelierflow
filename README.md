@@ -24,7 +24,7 @@ You can install the core framework via pip. Optional dependencies can be install
 pip install atelierflow
 
 # To include support for scikit-learn based steps
-pip install atelierflow[scikit-learn]
+pip install atelierflow[sklearn]
 
 # To include support for pytorch based steps
 pip install atelierflow[torch]
