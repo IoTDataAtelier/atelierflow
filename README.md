@@ -40,7 +40,7 @@ from sklearn.ensemble import RandomForestClassifier
 from atelierflow.experiment import Experiment
 from atelierflow.steps.common.save_data.save_to_avro import SaveToAvroStep
 
-#  Not implemented Steps
+#  Steps not implemented
 from atelierflow.steps.sklearn.evaluation import ClassificationEvaluationStep
 from atelierflow.steps.sklearn.training import TrainModelStep
 
