@@ -1,4 +1,3 @@
-import apache_beam as beam
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 
